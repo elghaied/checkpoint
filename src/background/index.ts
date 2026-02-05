@@ -1,12 +1,23 @@
 // Checkpoint Background Service Worker
 import { searchAniList } from './anilist'
 import { storageService } from '@/storage'
-import type { MessageRequest } from '@/shared/types'
+import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
+import type { MessageRequest, ExportedData } from '@/shared/types'
 
 console.log('Checkpoint service worker started')
 
 // Set up side panel behavior
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+
+// Set up chapter check alarm
+setupChapterCheckAlarm()
+
+// Listen for alarm events
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'checkpoint-chapter-check') {
+    handleChapterCheckAlarm()
+  }
+})
 
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -115,6 +126,40 @@ async function handleMessage(
 
     case 'PING':
       return { pong: true }
+
+    // Settings handlers
+    case 'GET_SETTINGS': {
+      return storageService.getSettings()
+    }
+
+    case 'UPDATE_SETTINGS': {
+      const updated = await storageService.updateSettings(message.settings)
+      // Re-setup alarm if interval changed
+      await setupChapterCheckAlarm()
+      return updated
+    }
+
+    // Notification handlers
+    case 'TOGGLE_ITEM_NOTIFICATIONS': {
+      await storageService.update(message.providerId, {
+        notificationsEnabled: message.enabled,
+      })
+      return null
+    }
+
+    case 'CHECK_FOR_UPDATES': {
+      await triggerManualCheck()
+      return null
+    }
+
+    // Export/Import handlers
+    case 'EXPORT_DATA': {
+      return storageService.exportData()
+    }
+
+    case 'IMPORT_DATA': {
+      return storageService.importData(message.data as ExportedData)
+    }
 
     default:
       console.warn('Unknown message type:', message)

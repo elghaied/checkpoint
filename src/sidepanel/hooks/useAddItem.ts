@@ -119,6 +119,12 @@ export function useAddItem(onSuccess: () => void) {
         lastUrl: meta.pageUrl,
         updatedAt: now,
         createdAt: now,
+        // Chapter tracking fields
+        chaptersWhenAdded: media.chapters,
+        latestKnownChapters: media.chapters,
+        lastApiCheck: now,
+        notificationsEnabled: false, // Off by default per user decision
+        anilistStatus: media.status,
       }
 
       await saveItem(item)

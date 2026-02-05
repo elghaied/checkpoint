@@ -1,4 +1,12 @@
-import type { MessageRequest, MessageResponse, PageMetadata, TrackedItem, AniListMedia } from '@/shared/types'
+import type {
+  MessageRequest,
+  MessageResponse,
+  PageMetadata,
+  TrackedItem,
+  AniListMedia,
+  ExtensionSettings,
+  ExportedData,
+} from '@/shared/types'
 
 /**
  * Send a message to the background service worker
@@ -72,4 +80,58 @@ export async function findByTitle(title: string): Promise<TrackedItem | null> {
 export async function ping(): Promise<boolean> {
   const response = await sendMessage<{ pong: boolean }>({ type: 'PING' })
   return response.pong
+}
+
+// -------------------------------------------------------------------------
+// Settings
+// -------------------------------------------------------------------------
+
+/**
+ * Get extension settings
+ */
+export async function getSettings(): Promise<ExtensionSettings> {
+  return sendMessage<ExtensionSettings>({ type: 'GET_SETTINGS' })
+}
+
+/**
+ * Update extension settings
+ */
+export async function updateSettings(settings: Partial<ExtensionSettings>): Promise<ExtensionSettings> {
+  return sendMessage<ExtensionSettings>({ type: 'UPDATE_SETTINGS', settings })
+}
+
+// -------------------------------------------------------------------------
+// Notifications
+// -------------------------------------------------------------------------
+
+/**
+ * Toggle notifications for a specific item
+ */
+export async function toggleItemNotifications(providerId: string, enabled: boolean): Promise<void> {
+  return sendMessage<void>({ type: 'TOGGLE_ITEM_NOTIFICATIONS', providerId, enabled })
+}
+
+/**
+ * Manually trigger a chapter check
+ */
+export async function checkForUpdates(): Promise<void> {
+  return sendMessage<void>({ type: 'CHECK_FOR_UPDATES' })
+}
+
+// -------------------------------------------------------------------------
+// Export/Import
+// -------------------------------------------------------------------------
+
+/**
+ * Export all data
+ */
+export async function exportData(): Promise<ExportedData> {
+  return sendMessage<ExportedData>({ type: 'EXPORT_DATA' })
+}
+
+/**
+ * Import data from backup
+ */
+export async function importData(data: ExportedData): Promise<{ imported: number; updated: number; skipped: number }> {
+  return sendMessage<{ imported: number; updated: number; skipped: number }>({ type: 'IMPORT_DATA', data })
 }

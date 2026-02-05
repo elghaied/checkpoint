@@ -6,11 +6,15 @@ import ItemList from './components/ItemList'
 import AddButton from './components/AddButton'
 import SearchModal from './components/SearchModal'
 import EditModal from './components/EditModal'
+import SettingsPage from './components/SettingsPage'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { deleteItem } from './services/messaging'
 
+type View = 'list' | 'settings'
+
 export default function App() {
+  const [view, setView] = useState<View>('list')
   const [activeTab, setActiveTab] = useState<TabValue>('ALL')
   const { items, loading, refresh } = useTrackedItems(activeTab === 'ALL' ? undefined : activeTab)
   const addItem = useAddItem(refresh)
@@ -57,9 +61,18 @@ export default function App() {
 
   const isAddLoading = ['extracting', 'searching', 'saving'].includes(addItem.status)
 
+  // Settings page view
+  if (view === 'settings') {
+    return (
+      <div className="app">
+        <SettingsPage onBack={() => setView('list')} />
+      </div>
+    )
+  }
+
   return (
     <div className="app">
-      <Header />
+      <Header onSettingsClick={() => setView('settings')} />
       <main className="main">
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
         <ItemList
@@ -67,6 +80,7 @@ export default function App() {
           loading={loading}
           onEdit={handleEdit}
           onOpen={handleOpen}
+          onRefresh={refresh}
         />
         {addItem.status === 'error' && (
           <div className="toast toast--error">

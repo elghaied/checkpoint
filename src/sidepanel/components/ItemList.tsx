@@ -7,9 +7,10 @@ interface ItemListProps {
   loading: boolean
   onEdit: (item: TrackedItem) => void
   onOpen: (item: TrackedItem) => void
+  onRefresh: () => void
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, loading, onEdit, onOpen }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, loading, onEdit, onOpen, onRefresh }) => {
   if (loading) {
     return (
       <div className="item-list item-list--loading">
@@ -30,6 +31,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, onEdit, onOpen }) =
           item={item}
           onEdit={() => onEdit(item)}
           onOpen={() => onOpen(item)}
+          onToggleNotifications={() => onRefresh()}
         />
       ))}
     </div>

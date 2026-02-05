@@ -1,6 +1,7 @@
-import { TrackedItem } from '@/shared/types'
+import { TrackedItem, ExtensionSettings, DEFAULT_SETTINGS, ExportedData, ExportedItem } from '@/shared/types'
 
 const STORAGE_KEY = 'trackedItems'
+const SETTINGS_KEY = 'settings'
 
 /**
  * Reads the raw array of TrackedItems out of chrome.storage.local.
@@ -20,6 +21,27 @@ function readAll(): Promise<TrackedItem[]> {
 function writeAll(items: TrackedItem[]): Promise<void> {
   return new Promise((resolve) => {
     chrome.storage.local.set({ [STORAGE_KEY]: items }, resolve)
+  })
+}
+
+/**
+ * Reads settings from chrome.storage.local.
+ * Returns default settings when the key has never been written.
+ */
+function readSettings(): Promise<ExtensionSettings> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(SETTINGS_KEY, (result) => {
+      resolve((result[SETTINGS_KEY] as ExtensionSettings) ?? { ...DEFAULT_SETTINGS })
+    })
+  })
+}
+
+/**
+ * Writes settings to chrome.storage.local.
+ */
+function writeSettings(settings: ExtensionSettings): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [SETTINGS_KEY]: settings }, resolve)
   })
 }
 
@@ -100,5 +122,154 @@ export class StorageService {
   async delete(providerId: string): Promise<void> {
     const items = await readAll()
     await writeAll(items.filter((item) => item.providerId !== providerId))
+  }
+
+  // -------------------------------------------------------------------------
+  // Settings methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Retrieve extension settings.
+   */
+  async getSettings(): Promise<ExtensionSettings> {
+    return readSettings()
+  }
+
+  /**
+   * Update extension settings (partial update supported).
+   */
+  async updateSettings(updates: Partial<ExtensionSettings>): Promise<ExtensionSettings> {
+    const current = await readSettings()
+    const updated = { ...current, ...updates }
+    await writeSettings(updated)
+    return updated
+  }
+
+  // -------------------------------------------------------------------------
+  // Bulk operations for chapter checking
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get all items that need chapter updates (RELEASING status, notifications enabled).
+   */
+  async getItemsForUpdate(): Promise<TrackedItem[]> {
+    const items = await readAll()
+    return items.filter(
+      (item) =>
+        item.notificationsEnabled &&
+        item.anilistStatus !== 'FINISHED' &&
+        item.anilistStatus !== 'CANCELLED'
+    )
+  }
+
+  /**
+   * Bulk update chapter info for multiple items.
+   */
+  async bulkUpdateChapterInfo(
+    updates: Array<{
+      providerId: string
+      latestKnownChapters: number | null
+      anilistStatus: string | null
+      lastApiCheck: number
+    }>
+  ): Promise<void> {
+    const items = await readAll()
+
+    for (const update of updates) {
+      const index = items.findIndex((item) => item.providerId === update.providerId)
+      if (index !== -1) {
+        items[index] = {
+          ...items[index],
+          latestKnownChapters: update.latestKnownChapters,
+          anilistStatus: update.anilistStatus,
+          lastApiCheck: update.lastApiCheck,
+        }
+      }
+    }
+
+    await writeAll(items)
+  }
+
+  // -------------------------------------------------------------------------
+  // Export/Import
+  // -------------------------------------------------------------------------
+
+  /**
+   * Export all data for backup/sync.
+   */
+  async exportData(): Promise<ExportedData> {
+    const items = await readAll()
+    const settings = await readSettings()
+
+    const exportedItems: ExportedItem[] = items.map((item) => ({
+      provider: item.provider,
+      providerId: item.providerId,
+      mediaType: item.mediaType,
+      format: item.format,
+      titles: item.titles,
+      coverImage: item.coverImage,
+      progress: item.progress,
+      lastUrl: item.lastUrl,
+      updatedAt: item.updatedAt,
+      createdAt: item.createdAt,
+      chaptersWhenAdded: item.chaptersWhenAdded,
+      latestKnownChapters: item.latestKnownChapters,
+      notificationsEnabled: item.notificationsEnabled,
+      anilistStatus: item.anilistStatus,
+    }))
+
+    return {
+      version: 1,
+      exportedAt: Date.now(),
+      source: 'checkpoint-extension',
+      settings,
+      items: exportedItems,
+    }
+  }
+
+  /**
+   * Import data from backup/sync.
+   * Merges with existing data using last-write-wins for conflicts.
+   */
+  async importData(data: ExportedData): Promise<{ imported: number; updated: number; skipped: number }> {
+    const existingItems = await readAll()
+    const existingMap = new Map(existingItems.map((item) => [item.providerId, item]))
+
+    let imported = 0
+    let updated = 0
+    let skipped = 0
+
+    for (const importItem of data.items) {
+      const existing = existingMap.get(importItem.providerId)
+
+      if (!existing) {
+        // New item - add it
+        const newItem: TrackedItem = {
+          ...importItem,
+          lastApiCheck: null,
+        }
+        existingMap.set(importItem.providerId, newItem)
+        imported++
+      } else if (importItem.updatedAt > existing.updatedAt) {
+        // Imported item is newer - update
+        existingMap.set(importItem.providerId, {
+          ...existing,
+          ...importItem,
+          lastApiCheck: existing.lastApiCheck, // Preserve local API check time
+        })
+        updated++
+      } else {
+        skipped++
+      }
+    }
+
+    await writeAll(Array.from(existingMap.values()))
+
+    // Also import settings if they exist
+    if (data.settings) {
+      await writeSettings(data.settings)
+    }
+
+    return { imported, updated, skipped }
   }
 }

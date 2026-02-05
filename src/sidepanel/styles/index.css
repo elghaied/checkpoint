@@ -108,6 +108,51 @@ body {
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  flex: 1;
+}
+
+.item-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-card__bell {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.item-card__bell:hover {
+  color: var(--text-primary);
+}
+
+.item-card__bell--active {
+  color: var(--accent);
+}
+
+.item-card__bell--active:hover {
+  color: var(--accent-hover);
+}
+
+.item-card__progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-card__ahead {
+  font-size: 11px;
+  font-weight: 600;
+  color: #27ae60;
+  background-color: rgba(39, 174, 96, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .item-card__title {
@@ -582,4 +627,207 @@ body {
 
 .alt-names__add .edit-form__input {
   flex: 1;
+}
+
+/* ---------- Header with settings ---------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header__settings-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.header__settings-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ---------- Settings Page ---------- */
+
+.settings-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-page__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-page__back {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-page__back:hover {
+  color: var(--text-primary);
+}
+
+.settings-page__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.settings-page__content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.settings-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-item__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.settings-item__description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle__slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.toggle__slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.toggle__input:checked + .toggle__slider {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle__input:checked + .toggle__slider::before {
+  transform: translateX(20px);
+  background-color: #fff;
+}
+
+/* Number input for settings */
+.settings-item__input {
+  width: 80px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  text-align: center;
+}
+
+.settings-item__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Import/Export buttons */
+.settings-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-actions .btn {
+  flex: 1;
+}
+
+/* File input hidden */
+.settings-file-input {
+  display: none;
+}
+
+/* Import result toast */
+.import-result {
+  padding: 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.import-result__title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.import-result__stats {
+  color: var(--text-secondary);
 }

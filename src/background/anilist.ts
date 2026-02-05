@@ -29,6 +29,18 @@ const SEARCH_MANGA_QUERY = `
   }
 `
 
+const BATCH_MANGA_QUERY = `
+  query BatchManga($ids: [Int]) {
+    Page(perPage: 50) {
+      media(id_in: $ids, type: MANGA) {
+        id
+        status
+        chapters
+      }
+    }
+  }
+`
+
 // ---------------------------------------------------------------------------
 // Query filtering
 // ---------------------------------------------------------------------------
@@ -67,6 +79,21 @@ interface AniListResponse {
   data?: {
     Page: {
       media: AniListMedia[]
+    }
+  }
+  errors?: { message: string }[]
+}
+
+interface BatchMediaResult {
+  id: number
+  status: string
+  chapters: number | null
+}
+
+interface AniListBatchResponse {
+  data?: {
+    Page: {
+      media: BatchMediaResult[]
     }
   }
   errors?: { message: string }[]
@@ -216,4 +243,79 @@ export function getFormat(countryOfOrigin: string | null): MediaFormat {
     default:
       return 'MANGA'
   }
+}
+
+// ---------------------------------------------------------------------------
+// Batch fetch for chapter checking
+// ---------------------------------------------------------------------------
+
+export interface BatchChapterResult {
+  id: string
+  status: string | null
+  chapters: number | null
+}
+
+/**
+ * Fetch chapter and status info for multiple manga by their AniList IDs.
+ * Returns a map of providerId -> { status, chapters }
+ */
+export async function fetchBatchChapterInfo(
+  providerIds: string[]
+): Promise<Map<string, BatchChapterResult>> {
+  const results = new Map<string, BatchChapterResult>()
+
+  if (providerIds.length === 0) {
+    return results
+  }
+
+  // Convert string IDs to numbers for AniList API
+  const ids = providerIds.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
+
+  if (ids.length === 0) {
+    return results
+  }
+
+  console.log('[anilist] Batch fetching chapter info for', ids.length, 'items')
+
+  let response: Response
+
+  try {
+    response = await fetch(ANILIST_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: BATCH_MANGA_QUERY,
+        variables: { ids },
+      }),
+    })
+  } catch (err) {
+    console.error('[anilist] Network error during batch fetch:', err)
+    return results
+  }
+
+  if (!response.ok) {
+    const text = await response.text()
+    console.error('[anilist] Batch fetch returned HTTP', response.status, text)
+    return results
+  }
+
+  const json: AniListBatchResponse = await response.json()
+
+  if (json.errors && json.errors.length > 0) {
+    console.error('[anilist] GraphQL errors:', json.errors.map((e) => e.message))
+    return results
+  }
+
+  const media = json.data?.Page.media ?? []
+  console.log('[anilist] Batch fetch returned', media.length, 'results')
+
+  for (const m of media) {
+    results.set(String(m.id), {
+      id: String(m.id),
+      status: m.status,
+      chapters: m.chapters,
+    })
+  }
+
+  return results
 }
