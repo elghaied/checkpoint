@@ -30,6 +30,34 @@ const SEARCH_MANGA_QUERY = `
 `
 
 // ---------------------------------------------------------------------------
+// Query filtering
+// ---------------------------------------------------------------------------
+
+/** Words that negatively impact AniList search results */
+const NOISE_WORDS = [
+  'manga',
+  'manhwa',
+  'manhua',
+  'free',
+  'read',
+  'online',
+  'chapter',
+  'chapters',
+  'raw',
+  'raws',
+  'scan',
+  'scans',
+]
+
+/**
+ * Remove noise words from a search query to improve AniList results.
+ */
+function cleanSearchQuery(query: string): string {
+  const pattern = new RegExp(`\\b(${NOISE_WORDS.join('|')})\\b`, 'gi')
+  return query.replace(pattern, '').replace(/\s+/g, ' ').trim()
+}
+
+// ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
 
@@ -49,7 +77,8 @@ interface AniListResponse {
  * Returns the media array from the response, or an empty array on failure.
  */
 export async function searchAniList(query: string): Promise<AniListMedia[]> {
-  console.log('[anilist] Searching for:', query)
+  const cleanedQuery = cleanSearchQuery(query) || query // fallback to original if filtering removes everything
+  console.log('[anilist] Searching for:', cleanedQuery, '(original:', query, ')')
 
   let response: Response
 
@@ -59,7 +88,7 @@ export async function searchAniList(query: string): Promise<AniListMedia[]> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: SEARCH_MANGA_QUERY,
-        variables: { query },
+        variables: { query: cleanedQuery },
       }),
     })
   } catch (err) {
