@@ -9,7 +9,7 @@ export interface PageMetadata {
 
 // Tracked item stored in local storage
 export interface TrackedItem {
-  provider: 'anilist'
+  provider: 'anilist' | 'mangadex'
   providerId: string
   mediaType: 'manga' | 'anime' | 'tv'
   format: 'MANGA' | 'MANHWA' | 'MANHUA'
@@ -96,10 +96,36 @@ export interface AniListMedia {
   chapters: number | null
 }
 
+// MangaDex media response (simplified)
+export interface MangaDexMedia {
+  id: string
+  title: string // Primary extracted title
+  altTitles: string[]
+  coverUrl: string
+  originalLanguage: string // ja, ko, zh, etc.
+  status: string | null
+  lastChapter: string | null
+}
+
+// Unified search result for multi-provider search
+export interface UnifiedSearchResult {
+  provider: 'anilist' | 'mangadex'
+  id: string
+  title: { primary: string; alt: string[] }
+  coverUrl: string
+  format: 'MANGA' | 'MANHWA' | 'MANHUA'
+  status: string | null
+  chapters: number | null
+  confidence: number
+  originalData: AniListMedia | MangaDexMedia
+}
+
 // Message types for chrome.runtime messaging
 export type MessageRequest =
   | { type: 'EXTRACT_METADATA'; tabId?: number }
   | { type: 'SEARCH_ANILIST'; query: string }
+  | { type: 'SEARCH_MANGA'; query: string; extractedTitle: string }
+  | { type: 'SEARCH_MANGADEX'; query: string }
   | { type: 'SAVE_ITEM'; item: TrackedItem }
   | { type: 'GET_ALL_ITEMS'; format?: TrackedItem['format'] }
   | { type: 'UPDATE_PROGRESS'; providerId: string; progress: string; lastUrl: string }

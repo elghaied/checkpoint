@@ -157,7 +157,7 @@ export interface MatchResult {
 /**
  * Collect every title string associated with a single AniListMedia entry.
  */
-function collectTitles(media: AniListMedia): string[] {
+export function collectTitles(media: AniListMedia): string[] {
   const { romaji, english, native } = media.title
   const candidates: string[] = [romaji, native, ...media.synonyms]
   if (english) candidates.push(english)
@@ -167,7 +167,7 @@ function collectTitles(media: AniListMedia): string[] {
 /**
  * Normalise a string for comparison: lowercase and collapse whitespace.
  */
-function normalise(s: string): string {
+export function normalise(s: string): string {
   return s.toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
@@ -182,7 +182,7 @@ function normalise(s: string): string {
  *
  * The best score across all titles for a given media entry is kept.
  */
-function scorePair(a: string, b: string): number {
+export function scorePair(a: string, b: string): number {
   if (a === b) return 1.0
   if (a.startsWith(b) || b.startsWith(a)) return 0.9
   if (a.includes(b) || b.includes(a)) return 0.7

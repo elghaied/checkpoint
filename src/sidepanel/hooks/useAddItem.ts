@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import type { TrackedItem, AniListMedia, PageMetadata } from '@/shared/types'
-import { extractMetadata, searchAniList, saveItem, findByTitle } from '../services/messaging'
-import { getFormat } from '@/shared/utils'
+import type { TrackedItem, AniListMedia, PageMetadata, UnifiedSearchResult } from '@/shared/types'
+import { extractMetadata, searchManga, saveItem, findByTitle } from '../services/messaging'
 
 interface AddItemState {
   status: 'idle' | 'extracting' | 'searching' | 'selecting' | 'saving' | 'success' | 'error'
   metadata: PageMetadata | null
-  searchResults: AniListMedia[] | null
+  searchResults: UnifiedSearchResult[] | null
   error: string | null
   originalExtractedTitle: string | null
 }
@@ -57,8 +56,8 @@ export function useAddItem(onSuccess: () => void) {
         return
       }
 
-      // Search AniList
-      const results = await searchAniList(query)
+      // Search with fallback (AniList → MangaDex)
+      const results = await searchManga(query, query)
 
       if (results.length === 0) {
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: [] }))
@@ -67,7 +66,7 @@ export function useAddItem(onSuccess: () => void) {
 
       if (results.length === 1) {
         // Auto-select single result
-        await selectMedia(results[0], metadata)
+        await selectResult(results[0], metadata)
       } else {
         // Show selection modal
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: results }))
@@ -81,7 +80,7 @@ export function useAddItem(onSuccess: () => void) {
     }
   }
 
-  const selectMedia = async (media: AniListMedia, metadata?: PageMetadata) => {
+  const selectResult = async (result: UnifiedSearchResult, metadata?: PageMetadata) => {
     const meta = metadata || state.metadata
     if (!meta) return
 
@@ -89,12 +88,9 @@ export function useAddItem(onSuccess: () => void) {
 
     try {
       const now = Date.now()
-      const altTitles = [
-        media.title.romaji,
-        media.title.native,
-        ...(media.title.english ? [media.title.english] : []),
-        ...media.synonyms,
-      ].filter(Boolean)
+
+      // Build alt titles from the unified result
+      const altTitles = [...result.title.alt].filter(Boolean)
 
       // Include the original extracted title in alt names if it's different
       const originalTitle = state.originalExtractedTitle
@@ -102,16 +98,23 @@ export function useAddItem(onSuccess: () => void) {
         altTitles.push(originalTitle)
       }
 
+      // Extract provider-specific data
+      let anilistStatus: string | null = null
+      if (result.provider === 'anilist') {
+        const anilistData = result.originalData as AniListMedia
+        anilistStatus = anilistData.status
+      }
+
       const item: TrackedItem = {
-        provider: 'anilist',
-        providerId: String(media.id),
+        provider: result.provider,
+        providerId: result.id,
         mediaType: 'manga',
-        format: getFormat(media.countryOfOrigin),
+        format: result.format,
         titles: {
-          main: media.title.english || media.title.romaji,
+          main: result.title.primary,
           alt: altTitles,
         },
-        coverImage: media.coverImage.large || media.coverImage.medium,
+        coverImage: result.coverUrl,
         progress: {
           unit: 'chapter',
           value: meta.chapterNumber || '0',
@@ -120,11 +123,11 @@ export function useAddItem(onSuccess: () => void) {
         updatedAt: now,
         createdAt: now,
         // Chapter tracking fields
-        chaptersWhenAdded: media.chapters,
-        latestKnownChapters: media.chapters,
+        chaptersWhenAdded: result.chapters,
+        latestKnownChapters: result.chapters,
         lastApiCheck: now,
         notificationsEnabled: false, // Off by default per user decision
-        anilistStatus: media.status,
+        anilistStatus,
       }
 
       await saveItem(item)
@@ -144,13 +147,38 @@ export function useAddItem(onSuccess: () => void) {
     }
   }
 
+  // Legacy function for backwards compatibility (wraps UnifiedSearchResult)
+  const selectMedia = async (media: AniListMedia, metadata?: PageMetadata) => {
+    // Convert AniListMedia to UnifiedSearchResult format
+    const result: UnifiedSearchResult = {
+      provider: 'anilist',
+      id: String(media.id),
+      title: {
+        primary: media.title.english || media.title.romaji,
+        alt: [
+          media.title.romaji,
+          media.title.native,
+          ...(media.title.english ? [media.title.english] : []),
+          ...media.synonyms,
+        ].filter(Boolean),
+      },
+      coverUrl: media.coverImage.large || media.coverImage.medium,
+      format: media.countryOfOrigin === 'KR' ? 'MANHWA' : media.countryOfOrigin === 'CN' || media.countryOfOrigin === 'TW' ? 'MANHUA' : 'MANGA',
+      status: media.status,
+      chapters: media.chapters,
+      confidence: 1,
+      originalData: media,
+    }
+    return selectResult(result, metadata)
+  }
+
   const searchManually = async (query: string) => {
     if (!query.trim()) return
 
     setState((prev) => ({ ...prev, status: 'searching' }))
 
     try {
-      const results = await searchAniList(query)
+      const results = await searchManga(query, query)
       setState((prev) => ({ ...prev, status: 'selecting', searchResults: results }))
     } catch (err) {
       setState((prev) => ({
@@ -173,6 +201,7 @@ export function useAddItem(onSuccess: () => void) {
     ...state,
     startAdd,
     selectMedia,
+    selectResult,
     searchManually,
     cancelSelection,
     reset,

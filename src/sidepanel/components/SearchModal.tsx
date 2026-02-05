@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import type { AniListMedia } from '@/shared/types'
+import type { UnifiedSearchResult } from '@/shared/types'
 
 interface SearchModalProps {
-  results: AniListMedia[]
+  results: UnifiedSearchResult[]
   originalTitle: string | null
   isSearching?: boolean
-  onSelect: (media: AniListMedia) => void
+  onSelect: (result: UnifiedSearchResult) => void
   onSearch: (query: string) => void
   onCancel: () => void
 }
@@ -68,24 +68,29 @@ const SearchModal: React.FC<SearchModalProps> = ({
             </div>
           )}
 
-          {results.map((media) => (
+          {results.map((result) => (
             <button
-              key={media.id}
+              key={`${result.provider}-${result.id}`}
               className="search-result"
-              onClick={() => onSelect(media)}
+              onClick={() => onSelect(result)}
             >
-              <img
-                className="search-result__cover"
-                src={media.coverImage.medium}
-                alt={media.title.romaji}
-              />
+              {result.coverUrl ? (
+                <img
+                  className="search-result__cover"
+                  src={result.coverUrl}
+                  alt={result.title.primary}
+                />
+              ) : (
+                <div className="search-result__cover search-result__cover--placeholder" />
+              )}
               <div className="search-result__info">
                 <div className="search-result__title">
-                  {media.title.english || media.title.romaji}
+                  {result.title.primary}
                 </div>
                 <div className="search-result__meta">
-                  {media.format} &bull; {media.countryOfOrigin || 'JP'}
-                  {media.chapters && ` \u2022 ${media.chapters} chapters`}
+                  {result.format} &bull; {result.provider}
+                  {result.chapters && ` \u2022 ${result.chapters} chapters`}
+                  {result.confidence < 1 && ` \u2022 ${Math.round(result.confidence * 100)}% match`}
                 </div>
               </div>
             </button>

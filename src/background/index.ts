@@ -1,5 +1,7 @@
 // Checkpoint Background Service Worker
 import { searchAniList } from './anilist'
+import { searchMangaDex } from './mangadex'
+import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
 import type { MessageRequest, ExportedData } from '@/shared/types'
@@ -70,6 +72,20 @@ async function handleMessage(
       console.log('[SEARCH_ANILIST] Searching for:', message.query)
       const results = await searchAniList(message.query)
       console.log('[SEARCH_ANILIST] Results:', results.length, 'items found')
+      return results
+    }
+
+    case 'SEARCH_MANGA': {
+      console.log('[SEARCH_MANGA] Searching with fallback for:', message.query)
+      const results = await searchWithFallback(message.query, message.extractedTitle)
+      console.log('[SEARCH_MANGA] Results:', results.length, 'items found')
+      return results
+    }
+
+    case 'SEARCH_MANGADEX': {
+      console.log('[SEARCH_MANGADEX] Searching for:', message.query)
+      const results = await searchMangaDex(message.query)
+      console.log('[SEARCH_MANGADEX] Results:', results.length, 'items found')
       return results
     }
 

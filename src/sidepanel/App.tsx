@@ -104,7 +104,7 @@ export default function App() {
           results={addItem.searchResults || []}
           originalTitle={addItem.originalExtractedTitle}
           isSearching={addItem.status === 'searching'}
-          onSelect={addItem.selectMedia}
+          onSelect={addItem.selectResult}
           onSearch={addItem.searchManually}
           onCancel={addItem.cancelSelection}
         />

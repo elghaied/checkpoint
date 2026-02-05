@@ -6,6 +6,7 @@ import type {
   AniListMedia,
   ExtensionSettings,
   ExportedData,
+  UnifiedSearchResult,
 } from '@/shared/types'
 
 /**
@@ -33,6 +34,14 @@ export async function extractMetadata(): Promise<PageMetadata> {
  */
 export async function searchAniList(query: string): Promise<AniListMedia[]> {
   return sendMessage<AniListMedia[]>({ type: 'SEARCH_ANILIST', query })
+}
+
+/**
+ * Search manga with fallback (AniList → MangaDex)
+ * Results are validated against the extracted title
+ */
+export async function searchManga(query: string, extractedTitle: string): Promise<UnifiedSearchResult[]> {
+  return sendMessage<UnifiedSearchResult[]>({ type: 'SEARCH_MANGA', query, extractedTitle })
 }
 
 /**
