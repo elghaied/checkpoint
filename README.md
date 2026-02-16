@@ -317,6 +317,7 @@ If a site doesn't work well, you can manually search and select the correct titl
 - [x] Import/Export data
 - [x] Title search/filter in item list
 - [x] Reactive UI updates from background checks
+- [x] Improved search matching (space-variant titles, low-confidence fallback results)
 - [ ] Better chapter data API (in progress)
 - [ ] Cloud sync (optional)
 - [ ] Anime tracking support
