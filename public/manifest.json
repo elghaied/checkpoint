@@ -12,7 +12,8 @@
     "notifications"
   ],
   "host_permissions": [
-    "https://graphql.anilist.co/*"
+    "https://graphql.anilist.co/*",
+    "<all_urls>"
   ],
   "action": {
     "default_icon": {

@@ -65,7 +65,20 @@ async function handleMessage(
         // Script may already be injected, continue
       }
 
-      return chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_METADATA' })
+      // Retry sending message — content script listener may not be ready immediately after injection
+      const maxRetries = 3
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          return await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_METADATA' })
+        } catch (err) {
+          if (attempt < maxRetries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 150))
+          } else {
+            throw err
+          }
+        }
+      }
+      throw new Error('Failed to extract metadata after retries')
     }
 
     case 'SEARCH_ANILIST': {
