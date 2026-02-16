@@ -18,7 +18,10 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
   const [newAltName, setNewAltName] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
+  const isProgressValid = progressValue === '' || /^\d+(\.\d+)?$/.test(progressValue.trim())
+
   const handleSave = () => {
+    if (!isProgressValid) return
     const updates: Partial<TrackedItem> = {}
 
     const titlesChanged = title !== item.titles.main || JSON.stringify(altNames) !== JSON.stringify(item.titles.alt)
@@ -87,11 +90,14 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
               </label>
               <input
                 id="edit-progress"
-                className="edit-form__input"
+                className={`edit-form__input${!isProgressValid ? ' edit-form__input--error' : ''}`}
                 type="text"
                 value={progressValue}
                 onChange={(e) => setProgressValue(e.target.value)}
               />
+              {!isProgressValid && (
+                <span className="edit-form__error">Must be a number (e.g. 95 or 95.5)</span>
+              )}
             </div>
 
             <div className="edit-form__field">
@@ -155,7 +161,7 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
               <button type="button" className="btn btn--secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="btn btn--primary" onClick={handleSave}>
+              <button type="button" className="btn btn--primary" onClick={handleSave} disabled={!isProgressValid}>
                 Save
               </button>
             </div>

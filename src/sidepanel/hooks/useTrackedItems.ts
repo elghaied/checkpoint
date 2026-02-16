@@ -27,5 +27,16 @@ export function useTrackedItems(format?: Format) {
     refresh()
   }, [refresh])
 
+  // Auto-refresh when storage changes (e.g. background chapter checker)
+  useEffect(() => {
+    const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if ('trackedItems' in changes) {
+        refresh()
+      }
+    }
+    chrome.storage.onChanged.addListener(listener)
+    return () => chrome.storage.onChanged.removeListener(listener)
+  }, [refresh])
+
   return { items, loading, error, refresh }
 }

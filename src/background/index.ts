@@ -132,12 +132,26 @@ async function handleMessage(
       const items = await storageService.getAll()
       const normalizedQuery = message.title.toLowerCase().trim()
 
-      const match = items.find((item) => {
+      // First try exact match (normalized)
+      const exactMatch = items.find((item) => {
         const allTitles = [item.titles.main, ...item.titles.alt]
         return allTitles.some((t) => t.toLowerCase().trim() === normalizedQuery)
       })
+      if (exactMatch) return exactMatch
 
-      return match || null
+      // Then try containment match (either direction) for longer queries
+      if (normalizedQuery.length >= 3) {
+        const containMatch = items.find((item) => {
+          const allTitles = [item.titles.main, ...item.titles.alt]
+          return allTitles.some((t) => {
+            const normTitle = t.toLowerCase().trim()
+            return normTitle.includes(normalizedQuery) || normalizedQuery.includes(normTitle)
+          })
+        })
+        if (containMatch) return containMatch
+      }
+
+      return null
     }
 
     case 'PING':

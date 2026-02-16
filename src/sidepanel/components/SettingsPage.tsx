@@ -53,6 +53,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
 
       const result = await importData(data)
       setImportResult(result)
+      setTimeout(() => setImportResult(null), 8000)
 
       // Clear the input so the same file can be selected again
       e.target.value = ''
@@ -215,7 +216,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
             <div className="settings-item__info">
               <div className="settings-item__label">Checkpoint</div>
               <div className="settings-item__description">
-                Version 0.1.0 &middot; Track your manga reading progress
+                Version {chrome.runtime.getManifest().version} &middot; Track your manga reading progress
               </div>
             </div>
           </div>

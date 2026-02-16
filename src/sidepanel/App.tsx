@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { TrackedItem } from '@/shared/types'
 import Header from './components/Header'
 import TabBar, { type TabValue } from './components/TabBar'
+import SearchBar from './components/SearchBar'
 import ItemList from './components/ItemList'
 import AddButton from './components/AddButton'
 import SearchModal from './components/SearchModal'
@@ -16,9 +17,19 @@ type View = 'list' | 'settings'
 export default function App() {
   const [view, setView] = useState<View>('list')
   const [activeTab, setActiveTab] = useState<TabValue>('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
   const { items, loading, refresh } = useTrackedItems(activeTab === 'ALL' ? undefined : activeTab)
   const addItem = useAddItem(refresh)
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items
+    const q = searchQuery.toLowerCase().trim()
+    return items.filter((item) => {
+      const allTitles = [item.titles.main, ...item.titles.alt]
+      return allTitles.some((t) => t.toLowerCase().includes(q))
+    })
+  }, [items, searchQuery])
 
   const handleEdit = (item: TrackedItem) => {
     setEditingItem(item)
@@ -75,8 +86,9 @@ export default function App() {
       <Header onSettingsClick={() => setView('settings')} />
       <main className="main">
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
         <ItemList
-          items={items}
+          items={filteredItems}
           loading={loading}
           onEdit={handleEdit}
           onOpen={handleOpen}

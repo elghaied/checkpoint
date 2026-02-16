@@ -1,39 +1,9 @@
 import type { AniListMedia, MangaDexMedia, UnifiedSearchResult } from '@/shared/types'
+import { cleanSearchQuery, getFormat, getFormatFromLanguage } from '@/shared/utils'
 import { searchAniList, collectTitles, normalise, scorePair } from './anilist'
 import { searchMangaDex } from './mangadex'
 
 export const CONFIDENCE_THRESHOLD = 0.7
-
-/**
- * Derive format from original language code.
- * ja → MANGA, ko → MANHWA, zh/zh-hk → MANHUA
- */
-function formatFromLanguage(lang: string): 'MANGA' | 'MANHWA' | 'MANHUA' {
-  switch (lang) {
-    case 'ko':
-      return 'MANHWA'
-    case 'zh':
-    case 'zh-hk':
-      return 'MANHUA'
-    default:
-      return 'MANGA'
-  }
-}
-
-/**
- * Derive format from AniList country of origin.
- */
-function formatFromCountry(country: string | null): 'MANGA' | 'MANHWA' | 'MANHUA' {
-  switch (country) {
-    case 'KR':
-      return 'MANHWA'
-    case 'CN':
-    case 'TW':
-      return 'MANHUA'
-    default:
-      return 'MANGA'
-  }
-}
 
 /**
  * Calculate the best confidence score for a set of titles against an extracted title.
@@ -69,7 +39,7 @@ function normalizeAniListResults(
         alt: titles,
       },
       coverUrl: media.coverImage.large || media.coverImage.medium,
-      format: formatFromCountry(media.countryOfOrigin),
+      format: getFormat(media.countryOfOrigin),
       status: media.status,
       chapters: media.chapters,
       confidence,
@@ -100,7 +70,7 @@ function normalizeMangaDexResults(
         alt: manga.altTitles,
       },
       coverUrl: manga.coverUrl,
-      format: formatFromLanguage(manga.originalLanguage),
+      format: getFormatFromLanguage(manga.originalLanguage),
       status: manga.status,
       chapters: isNaN(chapters as number) ? null : chapters,
       confidence,
@@ -117,10 +87,12 @@ export async function searchWithFallback(
   query: string,
   extractedTitle: string
 ): Promise<UnifiedSearchResult[]> {
-  console.log('[searchService] Searching with fallback for:', query, '(extracted:', extractedTitle, ')')
+  // Clean noise words once before passing to any provider
+  const cleanedQuery = cleanSearchQuery(query) || query
+  console.log('[searchService] Searching with fallback for:', cleanedQuery, '(original:', query, ', extracted:', extractedTitle, ')')
 
   // Try AniList first
-  const anilistResults = await searchAniList(query)
+  const anilistResults = await searchAniList(cleanedQuery)
   const normalizedAnilist = normalizeAniListResults(anilistResults, extractedTitle)
   const validAnilist = normalizedAnilist.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
@@ -139,7 +111,7 @@ export async function searchWithFallback(
 
   // Fallback to MangaDex
   console.log('[searchService] AniList had no valid matches, trying MangaDex')
-  const mangadexResults = await searchMangaDex(query)
+  const mangadexResults = await searchMangaDex(cleanedQuery)
   const normalizedMangadex = normalizeMangaDexResults(mangadexResults, extractedTitle)
   const validMangadex = normalizedMangadex.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 

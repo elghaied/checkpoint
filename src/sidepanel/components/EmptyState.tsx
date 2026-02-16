@@ -3,11 +3,20 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
-  message = 'No items yet. Start reading a manga, manhwa, or manhua and add it here to track your progress.',
+  message,
 }) => {
   return (
     <div className="empty-state">
-      <p>{message}</p>
+      {message ? (
+        <p>{message}</p>
+      ) : (
+        <>
+          <p>No items yet</p>
+          <p className="empty-state__hint">
+            Navigate to a manga page and tap the <strong>+</strong> button to start tracking your progress.
+          </p>
+        </>
+      )}
     </div>
   )
 }

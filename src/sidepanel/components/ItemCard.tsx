@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { TrackedItem } from '@/shared/types'
 import { toggleItemNotifications } from '../services/messaging'
 
@@ -24,6 +25,8 @@ function formatUpdatedAt(timestamp: number): string {
 }
 
 const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotifications }) => {
+  const [bellLoading, setBellLoading] = useState(false)
+
   const progressLabel =
     item.progress.unit === 'chapter'
       ? `Chapter ${item.progress.value}`
@@ -36,12 +39,16 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotif
 
   const handleBellClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (bellLoading) return
     const newEnabled = !item.notificationsEnabled
+    setBellLoading(true)
     try {
       await toggleItemNotifications(item.providerId, newEnabled)
       onToggleNotifications?.(newEnabled)
     } catch (err) {
       console.error('Failed to toggle notifications:', err)
+    } finally {
+      setBellLoading(false)
     }
   }
 
@@ -56,8 +63,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotif
         <div className="item-card__header">
           <h3 className="item-card__title">{item.titles.main}</h3>
           <button
-            className={`item-card__bell ${item.notificationsEnabled ? 'item-card__bell--active' : ''}`}
+            className={`item-card__bell ${item.notificationsEnabled ? 'item-card__bell--active' : ''}${bellLoading ? ' item-card__bell--loading' : ''}`}
             onClick={handleBellClick}
+            disabled={bellLoading}
             title={item.notificationsEnabled ? 'Notifications on' : 'Notifications off'}
           >
             {item.notificationsEnabled ? (

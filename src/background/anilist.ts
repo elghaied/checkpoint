@@ -1,4 +1,6 @@
 import { AniListMedia } from '@/shared/types'
+import { cleanSearchQuery, getFormat } from '@/shared/utils'
+import type { MediaFormat } from '@/shared/utils'
 
 // ---------------------------------------------------------------------------
 // GraphQL
@@ -40,34 +42,6 @@ const BATCH_MANGA_QUERY = `
     }
   }
 `
-
-// ---------------------------------------------------------------------------
-// Query filtering
-// ---------------------------------------------------------------------------
-
-/** Words that negatively impact AniList search results */
-const NOISE_WORDS = [
-  'manga',
-  'manhwa',
-  'manhua',
-  'free',
-  'read',
-  'online',
-  'chapter',
-  'chapters',
-  'raw',
-  'raws',
-  'scan',
-  'scans',
-]
-
-/**
- * Remove noise words from a search query to improve AniList results.
- */
-function cleanSearchQuery(query: string): string {
-  const pattern = new RegExp(`\\b(${NOISE_WORDS.join('|')})\\b`, 'gi')
-  return query.replace(pattern, '').replace(/\s+/g, ' ').trim()
-}
 
 // ---------------------------------------------------------------------------
 // API
@@ -184,6 +158,8 @@ export function normalise(s: string): string {
  */
 export function scorePair(a: string, b: string): number {
   if (a === b) return 1.0
+  const shorter = a.length <= b.length ? a : b
+  if (shorter.length < 3) return 0
   if (a.startsWith(b) || b.startsWith(a)) return 0.9
   if (a.includes(b) || b.includes(a)) return 0.7
   return 0
@@ -217,33 +193,9 @@ export function matchTitle(extracted: string, mediaList: AniListMedia[]): MatchR
   return best
 }
 
-// ---------------------------------------------------------------------------
-// Format mapping
-// ---------------------------------------------------------------------------
-
-export type MediaFormat = 'MANGA' | 'MANHWA' | 'MANHUA'
-
-/**
- * Derive the reading format from the country of origin reported by AniList.
- *
- *   JP          → MANGA
- *   KR          → MANHWA
- *   CN | TW     → MANHUA
- *   null / other → MANGA  (safe default)
- */
-export function getFormat(countryOfOrigin: string | null): MediaFormat {
-  switch (countryOfOrigin) {
-    case 'JP':
-      return 'MANGA'
-    case 'KR':
-      return 'MANHWA'
-    case 'CN':
-    case 'TW':
-      return 'MANHUA'
-    default:
-      return 'MANGA'
-  }
-}
+// Re-export for backward compatibility
+export { getFormat }
+export type { MediaFormat }
 
 // ---------------------------------------------------------------------------
 // Batch fetch for chapter checking

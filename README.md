@@ -22,23 +22,28 @@ A Chrome Side Panel extension that tracks your manga, manhwa, and manhua reading
 
 ### Organization & Filtering
 - **Format tabs** - Filter by All, Manga (JP), Manhwa (KR), or Manhua (CN)
+- **Title search** - Quickly find tracked items by typing in the search/filter bar
 - **Progress display** - Shows current chapter and how many chapters you're behind
 - **Quick navigation** - Click to open your last reading position
 
 ### Multi-Provider Support
 - **AniList integration** - Primary source for metadata, covers, and chapter info
-- **MangaDex fallback** - Secondary source when AniList data is incomplete
+- **MangaDex fallback** - Secondary source when AniList doesn't have a match
+- **Noise word filtering** - Automatically strips words like "manga", "read online", "chapter" from search queries for better results across all providers
 - **Manual search** - Search directly when auto-detection fails
 - **Google fallback** - Find alternative names via Google when titles aren't recognized
 
 ### Data Management
 - **Edit entries** - Manually adjust titles, progress, format, or alternative names
+- **Progress validation** - Progress field validates numeric input to prevent bad data
 - **Import/Export** - Backup and restore your tracking data
 - **Alternative names** - Add custom names for better matching across sites
 
 ### UI & Experience
 - **Dark theme** - Easy on the eyes during late-night reading sessions
 - **Side panel interface** - Always accessible without leaving your reading page
+- **Reactive updates** - UI automatically refreshes when background chapter checks find new data
+- **On-demand content script** - Content script is only injected when needed, not on every page
 
 <table>
   <tr>
@@ -121,6 +126,7 @@ The "check for new chapters" feature relies on AniList and MangaDex APIs to repo
 
 ### Managing Entries
 
+- **Search** - Type in the filter bar to find a specific title
 - **Switch tabs** - View All or filter by Manga, Manhwa, or Manhua
 - **Edit** - Click "Edit" on any card to change title, progress, format, or alternative names
 - **Toggle notifications** - Click the bell icon to enable/disable new chapter alerts
@@ -156,6 +162,9 @@ npm run build
 
 # Type checking
 npm run typecheck
+
+# Lint
+npm run lint
 ```
 
 ### Project Structure
@@ -186,6 +195,7 @@ checkpoint/
 │   └── icons/              # Extension icons
 ├── dist/                   # Built extension (load this in Chrome)
 ├── vite.config.ts          # Vite build configuration
+├── eslint.config.js        # ESLint configuration
 ├── tsconfig.json           # TypeScript configuration
 └── package.json
 ```
@@ -287,6 +297,7 @@ If a site doesn't work well, you can manually search and select the correct titl
 - **TypeScript** - Type-safe code
 - **React 19** - UI framework
 - **Vite** - Build tool
+- **ESLint** - Code linting with TypeScript and React Hooks rules
 - **AniList GraphQL API** - Primary metadata source
 - **MangaDex REST API** - Fallback metadata source
 
@@ -304,6 +315,8 @@ If a site doesn't work well, you can manually search and select the correct titl
 - [x] Smart progress updates
 - [x] New chapter notifications
 - [x] Import/Export data
+- [x] Title search/filter in item list
+- [x] Reactive UI updates from background checks
 - [ ] Better chapter data API (in progress)
 - [ ] Cloud sync (optional)
 - [ ] Anime tracking support

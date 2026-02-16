@@ -83,6 +83,57 @@ body {
   border-color: var(--accent-hover);
 }
 
+/* ---------- FilterBar ---------- */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.filter-bar:focus-within {
+  border-color: var(--accent);
+}
+
+.filter-bar__icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.filter-bar__input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.filter-bar__input::placeholder {
+  color: var(--text-secondary);
+}
+
+.filter-bar__clear {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.filter-bar__clear:hover {
+  color: var(--text-primary);
+}
+
 /* ---------- ItemCard ---------- */
 
 .item-card {
@@ -138,6 +189,11 @@ body {
 
 .item-card__bell--active:hover {
   color: var(--accent-hover);
+}
+
+.item-card__bell--loading {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .item-card__progress-row {
@@ -225,6 +281,11 @@ body {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
+}
+
+.empty-state__hint {
+  margin-top: 8px;
+  font-size: 12px;
 }
 
 /* ---------- ItemList ---------- */
@@ -488,6 +549,15 @@ body {
 .edit-form__select:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.edit-form__input--error {
+  border-color: var(--accent);
+}
+
+.edit-form__error {
+  font-size: 11px;
+  color: var(--accent);
 }
 
 .edit-form__select {

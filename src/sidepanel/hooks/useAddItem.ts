@@ -57,7 +57,8 @@ export function useAddItem(onSuccess: () => void) {
       }
 
       // Search with fallback (AniList → MangaDex)
-      const results = await searchManga(query, query)
+      // query = cleaned title for API search, rawTitle for confidence scoring
+      const results = await searchManga(metadata.rawTitle, query)
 
       if (results.length === 0) {
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: [] }))
@@ -147,31 +148,6 @@ export function useAddItem(onSuccess: () => void) {
     }
   }
 
-  // Legacy function for backwards compatibility (wraps UnifiedSearchResult)
-  const selectMedia = async (media: AniListMedia, metadata?: PageMetadata) => {
-    // Convert AniListMedia to UnifiedSearchResult format
-    const result: UnifiedSearchResult = {
-      provider: 'anilist',
-      id: String(media.id),
-      title: {
-        primary: media.title.english || media.title.romaji,
-        alt: [
-          media.title.romaji,
-          media.title.native,
-          ...(media.title.english ? [media.title.english] : []),
-          ...media.synonyms,
-        ].filter(Boolean),
-      },
-      coverUrl: media.coverImage.large || media.coverImage.medium,
-      format: media.countryOfOrigin === 'KR' ? 'MANHWA' : media.countryOfOrigin === 'CN' || media.countryOfOrigin === 'TW' ? 'MANHUA' : 'MANGA',
-      status: media.status,
-      chapters: media.chapters,
-      confidence: 1,
-      originalData: media,
-    }
-    return selectResult(result, metadata)
-  }
-
   const searchManually = async (query: string) => {
     if (!query.trim()) return
 
@@ -200,7 +176,6 @@ export function useAddItem(onSuccess: () => void) {
   return {
     ...state,
     startAdd,
-    selectMedia,
     selectResult,
     searchManually,
     cancelSelection,
