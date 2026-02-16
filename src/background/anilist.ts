@@ -133,8 +133,9 @@ export interface MatchResult {
  */
 export function collectTitles(media: AniListMedia): string[] {
   const { romaji, english, native } = media.title
-  const candidates: string[] = [romaji, native, ...media.synonyms]
+  const candidates: string[] = [romaji, ...media.synonyms]
   if (english) candidates.push(english)
+  if (native) candidates.push(native)
   return candidates
 }
 
@@ -162,6 +163,14 @@ export function scorePair(a: string, b: string): number {
   if (shorter.length < 3) return 0
   if (a.startsWith(b) || b.startsWith(a)) return 0.9
   if (a.includes(b) || b.includes(a)) return 0.7
+
+  // Space-stripped comparison for titles like "Rairairai" vs "Rai Rai Rai"
+  const spacelessA = a.replace(/ /g, '')
+  const spacelessB = b.replace(/ /g, '')
+  if (spacelessA === spacelessB) return 0.85
+  if (spacelessA.startsWith(spacelessB) || spacelessB.startsWith(spacelessA)) return 0.8
+  if (spacelessA.includes(spacelessB) || spacelessB.includes(spacelessA)) return 0.7
+
   return 0
 }
 

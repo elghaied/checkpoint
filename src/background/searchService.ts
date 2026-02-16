@@ -87,12 +87,12 @@ export async function searchWithFallback(
   query: string,
   extractedTitle: string
 ): Promise<UnifiedSearchResult[]> {
-  // Clean noise words once before passing to any provider
-  const cleanedQuery = cleanSearchQuery(query) || query
-  console.log('[searchService] Searching with fallback for:', cleanedQuery, '(original:', query, ', extracted:', extractedTitle, ')')
+  // Prefer extractedTitle (clean manga name) over the full query (may include chapter, site name, etc.)
+  const searchQuery = cleanSearchQuery(extractedTitle || query) || cleanSearchQuery(query) || query
+  console.log('[searchService] Searching with fallback for:', searchQuery, '(original:', query, ', extracted:', extractedTitle, ')')
 
   // Try AniList first
-  const anilistResults = await searchAniList(cleanedQuery)
+  const anilistResults = await searchAniList(searchQuery)
   const normalizedAnilist = normalizeAniListResults(anilistResults, extractedTitle)
   const validAnilist = normalizedAnilist.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
@@ -109,9 +109,15 @@ export async function searchWithFallback(
     return validAnilist.sort((a, b) => b.confidence - a.confidence)
   }
 
+  // No AniList results passed threshold — return top 5 low-confidence results if available
+  if (normalizedAnilist.length > 0) {
+    console.log('[searchService] AniList had no valid matches, returning top low-confidence results')
+    return normalizedAnilist.sort((a, b) => b.confidence - a.confidence).slice(0, 5)
+  }
+
   // Fallback to MangaDex
-  console.log('[searchService] AniList had no valid matches, trying MangaDex')
-  const mangadexResults = await searchMangaDex(cleanedQuery)
+  console.log('[searchService] AniList had no results, trying MangaDex')
+  const mangadexResults = await searchMangaDex(searchQuery)
   const normalizedMangadex = normalizeMangaDexResults(mangadexResults, extractedTitle)
   const validMangadex = normalizedMangadex.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
@@ -123,6 +129,15 @@ export async function searchWithFallback(
     'above threshold'
   )
 
-  // Sort by confidence descending
-  return validMangadex.sort((a, b) => b.confidence - a.confidence)
+  if (validMangadex.length > 0) {
+    return validMangadex.sort((a, b) => b.confidence - a.confidence)
+  }
+
+  // No MangaDex results passed threshold — return top 5 low-confidence results
+  if (normalizedMangadex.length > 0) {
+    console.log('[searchService] MangaDex had no valid matches, returning top low-confidence results')
+    return normalizedMangadex.sort((a, b) => b.confidence - a.confidence).slice(0, 5)
+  }
+
+  return []
 }

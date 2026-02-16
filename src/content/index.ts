@@ -88,6 +88,8 @@ function cleanTitle(raw: string): string | null {
   const sitePatterns = [
     /\s*[-|]\s*(?:MangaDex|Webtoon|Tapas|MangaPlus|Asura|Reaper|Flame|Luminous|Read Online|Manga|Comics?).*$/i,
     /\s*[-|]\s*Read\s+(?:Online|Free|Now).*$/i,
+    // Generic domain-like suffixes: "- SITENAME.COM", "| site.org", etc.
+    /\s*[-|]\s*\S+\.(?:com|net|org|io|me|cc|to|tv|xyz|info|top|site|online)$/i,
   ]
 
   for (const pattern of sitePatterns) {

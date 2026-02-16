@@ -27,7 +27,19 @@ const NOISE_WORDS = [
  */
 export function cleanSearchQuery(query: string): string {
   const pattern = new RegExp(`\\b(${NOISE_WORDS.join('|')})\\b`, 'gi')
-  return query.replace(pattern, '').replace(/\s+/g, ' ').trim()
+  let cleaned = query
+    // Strip domain-like suffixes: "- SITENAME.COM", "| site.org"
+    .replace(/\s*[-|]\s*\S+\.(?:com|net|org|io|me|cc|to|tv|xyz|info|top|site|online)\b/gi, '')
+    // Strip noise words
+    .replace(pattern, '')
+    // Strip orphaned separators with optional bare numbers: "- 1 -", "- -", "- 123"
+    .replace(/\s*[-|]\s*\d*\s*(?:[-|]\s*)*$/g, '')
+    // Collapse whitespace
+    .replace(/\s+/g, ' ')
+    .trim()
+  // Strip leading/trailing separators
+  cleaned = cleaned.replace(/^[-|]\s*/, '').replace(/\s*[-|]$/, '').trim()
+  return cleaned
 }
 
 // ---------------------------------------------------------------------------
