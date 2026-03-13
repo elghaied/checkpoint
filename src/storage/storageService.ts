@@ -4,6 +4,19 @@ const STORAGE_KEY = 'trackedItems'
 const SETTINGS_KEY = 'settings'
 
 /**
+ * Simple serialization queue to prevent concurrent read-modify-write races.
+ * All storage mutations are funnelled through this so that only one
+ * read→modify→write cycle runs at a time.
+ */
+let mutationQueue = Promise.resolve()
+
+function serialize<T>(fn: () => Promise<T>): Promise<T> {
+  const op = mutationQueue.then(fn, fn)
+  mutationQueue = op.then(() => {}, () => {})
+  return op
+}
+
+/**
  * Reads the raw array of TrackedItems out of chrome.storage.local.
  * Returns an empty array when the key has never been written.
  */
@@ -70,31 +83,33 @@ export class StorageService {
    * Persist a new item, or update progress if item already exists with higher chapter.
    */
   async save(item: TrackedItem): Promise<void> {
-    const items = await readAll()
+    return serialize(async () => {
+      const items = await readAll()
 
-    const existingIndex = items.findIndex((existing) => existing.providerId === item.providerId)
+      const existingIndex = items.findIndex((existing) => existing.providerId === item.providerId)
 
-    if (existingIndex !== -1) {
-      // Update progress if new > old
-      const existing = items[existingIndex]
-      const oldProgress = parseFloat(existing.progress.value) || 0
-      const newProgress = parseFloat(item.progress.value) || 0
+      if (existingIndex !== -1) {
+        // Update progress if new > old
+        const existing = items[existingIndex]
+        const oldProgress = parseFloat(existing.progress.value) || 0
+        const newProgress = parseFloat(item.progress.value) || 0
 
-      if (newProgress > oldProgress) {
-        items[existingIndex] = {
-          ...existing,
-          progress: item.progress,
-          lastUrl: item.lastUrl,
-          updatedAt: Date.now(),
-          // Update notification baseline to current known chapters
-          chaptersWhenAdded: existing.latestKnownChapters ?? existing.chaptersWhenAdded,
+        if (newProgress > oldProgress) {
+          items[existingIndex] = {
+            ...existing,
+            progress: item.progress,
+            lastUrl: item.lastUrl,
+            updatedAt: Date.now(),
+            // Update notification baseline to current known chapters
+            chaptersWhenAdded: existing.latestKnownChapters ?? existing.chaptersWhenAdded,
+          }
+          await writeAll(items)
         }
+      } else {
+        items.push(item)
         await writeAll(items)
       }
-    } else {
-      items.push(item)
-      await writeAll(items)
-    }
+    })
   }
 
   /**
@@ -103,27 +118,31 @@ export class StorageService {
    * any updatedAt value supplied in the updates object is ignored.
    */
   async update(providerId: string, updates: Partial<TrackedItem>): Promise<void> {
-    const items = await readAll()
+    return serialize(async () => {
+      const items = await readAll()
 
-    const index = items.findIndex((item) => item.providerId === providerId)
-    if (index === -1) return
+      const index = items.findIndex((item) => item.providerId === providerId)
+      if (index === -1) return
 
-    items[index] = {
-      ...items[index],
-      ...updates,
-      providerId, // ensure providerId cannot be overwritten
-      updatedAt: Date.now(),
-    }
+      items[index] = {
+        ...items[index],
+        ...updates,
+        providerId, // ensure providerId cannot be overwritten
+        updatedAt: Date.now(),
+      }
 
-    await writeAll(items)
+      await writeAll(items)
+    })
   }
 
   /**
    * Remove an item by providerId.  No-ops when the ID does not exist.
    */
   async delete(providerId: string): Promise<void> {
-    const items = await readAll()
-    await writeAll(items.filter((item) => item.providerId !== providerId))
+    return serialize(async () => {
+      const items = await readAll()
+      await writeAll(items.filter((item) => item.providerId !== providerId))
+    })
   }
 
   // -------------------------------------------------------------------------
@@ -175,21 +194,23 @@ export class StorageService {
       lastApiCheck: number
     }>
   ): Promise<void> {
-    const items = await readAll()
+    return serialize(async () => {
+      const items = await readAll()
 
-    for (const update of updates) {
-      const index = items.findIndex((item) => item.providerId === update.providerId)
-      if (index !== -1) {
-        items[index] = {
-          ...items[index],
-          latestKnownChapters: update.latestKnownChapters,
-          anilistStatus: update.anilistStatus,
-          lastApiCheck: update.lastApiCheck,
+      for (const update of updates) {
+        const index = items.findIndex((item) => item.providerId === update.providerId)
+        if (index !== -1) {
+          items[index] = {
+            ...items[index],
+            latestKnownChapters: update.latestKnownChapters,
+            anilistStatus: update.anilistStatus,
+            lastApiCheck: update.lastApiCheck,
+          }
         }
       }
-    }
 
-    await writeAll(items)
+      await writeAll(items)
+    })
   }
 
   // -------------------------------------------------------------------------
@@ -234,52 +255,66 @@ export class StorageService {
    * Merges with existing data using last-write-wins for conflicts.
    */
   async importData(data: ExportedData): Promise<ImportResult> {
-    const existingItems = await readAll()
-    const existingMap = new Map(existingItems.map((item) => [item.providerId, item]))
+    return serialize(async () => {
+      const existingItems = await readAll()
+      const existingMap = new Map(existingItems.map((item) => [item.providerId, item]))
 
-    let imported = 0
-    let updated = 0
-    let skipped = 0
-    const details = {
-      importedTitles: [] as string[],
-      updatedTitles: [] as string[],
-      skippedTitles: [] as string[],
-    }
-
-    for (const importItem of data.items) {
-      const existing = existingMap.get(importItem.providerId)
-
-      if (!existing) {
-        // New item - add it
-        const newItem: TrackedItem = {
-          ...importItem,
-          lastApiCheck: null,
-        }
-        existingMap.set(importItem.providerId, newItem)
-        details.importedTitles.push(importItem.titles.main)
-        imported++
-      } else if (importItem.updatedAt > existing.updatedAt) {
-        // Imported item is newer - update
-        existingMap.set(importItem.providerId, {
-          ...existing,
-          ...importItem,
-          lastApiCheck: existing.lastApiCheck, // Preserve local API check time
-        })
-        details.updatedTitles.push(importItem.titles.main)
-        updated++
-      } else {
-        details.skippedTitles.push(importItem.titles.main)
-        skipped++
+      let imported = 0
+      let updated = 0
+      let skipped = 0
+      const details = {
+        importedTitles: [] as string[],
+        updatedTitles: [] as string[],
+        skippedTitles: [] as string[],
       }
-    }
 
-    await writeAll(Array.from(existingMap.values()))
+      for (const importItem of data.items) {
+        // Validate required fields
+        if (
+          !importItem.providerId ||
+          !importItem.provider ||
+          !importItem.titles?.main ||
+          !importItem.progress?.value
+        ) {
+          skipped++
+          details.skippedTitles.push(importItem.titles?.main ?? '(invalid item)')
+          continue
+        }
 
-    // Also import settings if they exist
-    if (data.settings) {
-      await writeSettings(data.settings)
-    }
+        const existing = existingMap.get(importItem.providerId)
 
-    return { imported, updated, skipped, details }
+        if (!existing) {
+          // New item - add it
+          const newItem: TrackedItem = {
+            ...importItem,
+            lastApiCheck: null,
+          }
+          existingMap.set(importItem.providerId, newItem)
+          details.importedTitles.push(importItem.titles.main)
+          imported++
+        } else if (importItem.updatedAt > existing.updatedAt) {
+          // Imported item is newer - update
+          existingMap.set(importItem.providerId, {
+            ...existing,
+            ...importItem,
+            lastApiCheck: existing.lastApiCheck, // Preserve local API check time
+          })
+          details.updatedTitles.push(importItem.titles.main)
+          updated++
+        } else {
+          details.skippedTitles.push(importItem.titles.main)
+          skipped++
+        }
+      }
+
+      await writeAll(Array.from(existingMap.values()))
+
+      // Also import settings if they exist
+      if (data.settings) {
+        await writeSettings(data.settings)
+      }
+
+      return { imported, updated, skipped, details }
+    })
   }
 }

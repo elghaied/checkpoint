@@ -15,7 +15,7 @@ export interface NotificationOptions {
  * Show a browser notification for new chapters.
  */
 export async function showNewChaptersNotification(options: NotificationOptions): Promise<void> {
-  const { title, chaptersAhead, coverImage, providerId } = options
+  const { title, chaptersAhead, providerId } = options
 
   const message =
     chaptersAhead === 1
@@ -27,7 +27,7 @@ export async function showNewChaptersNotification(options: NotificationOptions):
   try {
     await chrome.notifications.create(notificationId, {
       type: 'basic',
-      iconUrl: coverImage || chrome.runtime.getURL('icons/icon128.png'),
+      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
       title: `Checkpoint: ${title}`,
       message,
       priority: 1,

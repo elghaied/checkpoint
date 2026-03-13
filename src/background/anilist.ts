@@ -175,7 +175,10 @@ export function normalise(s: string): string {
  * The best score across all titles for a given media entry is kept.
  */
 export function scorePair(a: string, b: string): number {
-  if (a === b) return 1.0
+  if (a === b) {
+    // Two empty strings are not a meaningful match
+    return a.length === 0 ? 0 : 1.0
+  }
   const shorter = a.length <= b.length ? a : b
   if (shorter.length < 3) return 0
   if (a.startsWith(b) || b.startsWith(a)) return 0.9

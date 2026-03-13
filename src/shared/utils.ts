@@ -78,6 +78,7 @@ export function getFormatFromLanguage(lang: string): MediaFormat {
       return 'MANHWA'
     case 'zh':
     case 'zh-hk':
+    case 'zh-tw':
       return 'MANHUA'
     default:
       return 'MANGA'

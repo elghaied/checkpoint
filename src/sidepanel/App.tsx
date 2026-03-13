@@ -11,7 +11,7 @@ import EditModal from './components/EditModal'
 import SettingsPage from './components/SettingsPage'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
-import { deleteItem, ping } from './services/messaging'
+import { deleteItem, updateItem, ping } from './services/messaging'
 import { createLogger } from '@/shared/logger'
 
 const log = createLogger('app')
@@ -67,12 +67,7 @@ export default function App() {
     if (!editingItem) return
 
     try {
-      // Use the messaging service to update via background
-      await chrome.runtime.sendMessage({
-        type: 'UPDATE_ITEM',
-        providerId: editingItem.providerId,
-        updates,
-      })
+      await updateItem(editingItem.providerId, updates)
       setEditingItem(null)
       refresh()
     } catch (err) {

@@ -153,14 +153,15 @@ async function handleMessage(
     }
 
     case 'UPDATE_ITEM': {
+      const updates = { ...message.updates }
       // If progress is being updated, sync the notification baseline
-      if (message.updates.progress) {
+      if (updates.progress) {
         const existing = await storageService.getById(message.providerId)
         if (existing && existing.latestKnownChapters !== null) {
-          message.updates.chaptersWhenAdded = existing.latestKnownChapters
+          updates.chaptersWhenAdded = existing.latestKnownChapters
         }
       }
-      await storageService.update(message.providerId, message.updates)
+      await storageService.update(message.providerId, updates)
       return null
     }
 
@@ -233,7 +234,6 @@ async function handleMessage(
     }
 
     default:
-      log.warn('Unknown message type:', message)
-      return { error: 'Unknown message type' }
+      throw new Error(`Unknown message type: ${(message as { type: string }).type}`)
   }
 }

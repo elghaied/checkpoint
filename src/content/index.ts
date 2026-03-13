@@ -1,10 +1,21 @@
 // Checkpoint Content Script
 import { cleanTitle, extractChapter, extractFromOgTitle, extractFromH1 } from './metadata'
+import type { PageMetadata } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
 
 const log = createLogger('content')
 
 log.debug('Content script loaded')
+
+// Guard against duplicate listener registration from re-injection
+if ((globalThis as Record<string, unknown>).__checkpointListenerRegistered) {
+  log.debug('Listener already registered, skipping')
+} else {
+  (globalThis as Record<string, unknown>).__checkpointListenerRegistered = true
+  registerListener()
+}
+
+function registerListener() {
 
 // Message listener
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -19,13 +30,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true
 })
 
-interface PageMetadata {
-  rawTitle: string
-  detectedTitle: string | null
-  chapterNumber: string | null
-  pageUrl: string
-  extractionConfidence: 'high' | 'medium' | 'low'
-}
+} // end registerListener
 
 function extractPageMetadata(): PageMetadata {
   const rawTitle = document.title

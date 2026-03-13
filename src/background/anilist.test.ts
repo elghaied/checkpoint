@@ -109,8 +109,8 @@ describe('scorePair', () => {
     expect(scorePair('', 'solo leveling')).toBe(0)
   })
 
-  it('returns 1.0 for empty string exact match', () => {
-    expect(scorePair('', '')).toBe(1.0)
+  it('returns 0 for empty string pair', () => {
+    expect(scorePair('', '')).toBe(0)
   })
 })
 

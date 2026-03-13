@@ -54,7 +54,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onE
           index={idx}
           onEdit={() => onEdit(item)}
           onOpen={() => onOpen(item)}
-          onToggleNotifications={() => onRefresh()}
+          onToggleNotifications={onRefresh}
         />
       ))}
     </div>

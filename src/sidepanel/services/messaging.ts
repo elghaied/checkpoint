@@ -71,6 +71,13 @@ export async function updateProgress(
 }
 
 /**
+ * Update a tracked item
+ */
+export async function updateItem(providerId: string, updates: Partial<TrackedItem>): Promise<void> {
+  return sendMessage<void>({ type: 'UPDATE_ITEM', providerId, updates })
+}
+
+/**
  * Delete a tracked item
  */
 export async function deleteItem(providerId: string): Promise<void> {
