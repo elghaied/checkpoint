@@ -126,12 +126,21 @@ async function handleMessage(
         await storageService.update(message.providerId, {
           progress: { ...existing.progress, value: message.progress },
           lastUrl: message.lastUrl,
+          // Update notification baseline to current known chapters
+          chaptersWhenAdded: existing.latestKnownChapters ?? existing.chaptersWhenAdded,
         })
       }
       return null
     }
 
     case 'UPDATE_ITEM': {
+      // If progress is being updated, sync the notification baseline
+      if (message.updates.progress) {
+        const existing = await storageService.getById(message.providerId)
+        if (existing && existing.latestKnownChapters !== null) {
+          message.updates.chaptersWhenAdded = existing.latestKnownChapters
+        }
+      }
       await storageService.update(message.providerId, message.updates)
       return null
     }

@@ -27,7 +27,7 @@ export interface TrackedItem {
   createdAt: number
 
   // Chapter tracking fields
-  chaptersWhenAdded: number | null       // Total chapters at time of addition (baseline)
+  chaptersWhenAdded: number | null       // Notification baseline: chapters known at last progress update
   latestKnownChapters: number | null     // Most recent chapter count from AniList
   lastApiCheck: number | null            // Timestamp of last AniList check
   notificationsEnabled: boolean          // Per-item notification toggle

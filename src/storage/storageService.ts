@@ -86,6 +86,8 @@ export class StorageService {
           progress: item.progress,
           lastUrl: item.lastUrl,
           updatedAt: Date.now(),
+          // Update notification baseline to current known chapters
+          chaptersWhenAdded: existing.latestKnownChapters ?? existing.chaptersWhenAdded,
         }
         await writeAll(items)
       }
