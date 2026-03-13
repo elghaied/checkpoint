@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { TrackedItem } from '@/shared/types'
+import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
 import TabBar, { type TabValue } from './components/TabBar'
 import SearchBar from './components/SearchBar'
@@ -75,13 +76,16 @@ export default function App() {
   // Settings page view
   if (view === 'settings') {
     return (
-      <div className="app">
-        <SettingsPage onBack={() => setView('list')} />
-      </div>
+      <ErrorBoundary>
+        <div className="app">
+          <SettingsPage onBack={() => setView('list')} />
+        </div>
+      </ErrorBoundary>
     )
   }
 
   return (
+    <ErrorBoundary>
     <div className="app">
       <Header onSettingsClick={() => setView('settings')} />
       <main className="main">
@@ -112,23 +116,28 @@ export default function App() {
         disabled={isAddLoading}
       />
       {(addItem.status === 'selecting' || (addItem.status === 'searching' && addItem.searchResults !== null)) && (
-        <SearchModal
-          results={addItem.searchResults || []}
-          originalTitle={addItem.originalExtractedTitle}
-          isSearching={addItem.status === 'searching'}
-          onSelect={addItem.selectResult}
-          onSearch={addItem.searchManually}
-          onCancel={addItem.cancelSelection}
-        />
+        <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={addItem.cancelSelection}>Close</button></div>}>
+          <SearchModal
+            results={addItem.searchResults || []}
+            originalTitle={addItem.originalExtractedTitle}
+            isSearching={addItem.status === 'searching'}
+            onSelect={addItem.selectResult}
+            onSearch={addItem.searchManually}
+            onCancel={addItem.cancelSelection}
+          />
+        </ErrorBoundary>
       )}
       {editingItem && (
-        <EditModal
-          item={editingItem}
-          onSave={handleSaveEdit}
-          onDelete={handleDelete}
-          onClose={() => setEditingItem(null)}
-        />
+        <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={() => setEditingItem(null)}>Close</button></div>}>
+          <EditModal
+            item={editingItem}
+            onSave={handleSaveEdit}
+            onDelete={handleDelete}
+            onClose={() => setEditingItem(null)}
+          />
+        </ErrorBoundary>
       )}
     </div>
+    </ErrorBoundary>
   )
 }
