@@ -2,6 +2,7 @@ import { AniListMedia } from '@/shared/types'
 import { cleanSearchQuery, getFormat } from '@/shared/utils'
 import type { MediaFormat } from '@/shared/utils'
 import { SEARCH_RESULTS_PER_PAGE, BATCH_FETCH_PAGE_SIZE } from '@/shared/constants'
+import { fetchWithRetry } from './retry'
 
 // ---------------------------------------------------------------------------
 // GraphQL
@@ -85,7 +86,7 @@ export async function searchAniList(query: string): Promise<AniListMedia[]> {
   let response: Response
 
   try {
-    response = await fetch(ANILIST_ENDPOINT, {
+    response = await fetchWithRetry(ANILIST_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -242,7 +243,7 @@ export async function fetchBatchChapterInfo(
   let response: Response
 
   try {
-    response = await fetch(ANILIST_ENDPOINT, {
+    response = await fetchWithRetry(ANILIST_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

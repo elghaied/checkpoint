@@ -1,5 +1,6 @@
 import type { MangaDexMedia } from '@/shared/types'
 import { SEARCH_RESULTS_PER_PAGE, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
+import { fetchWithRetry } from './retry'
 
 const MANGADEX_API = 'https://api.mangadex.org'
 
@@ -86,7 +87,7 @@ export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
   let response: Response
 
   try {
-    response = await fetch(url.toString())
+    response = await fetchWithRetry(url.toString())
   } catch (err) {
     console.error('[mangadex] Network error during search:', err)
     return []
@@ -150,7 +151,7 @@ async function fetchSingleMangaInfo(mangaId: string): Promise<MangaDexChapterRes
   const url = `${MANGADEX_API}/manga/${mangaId}`
 
   try {
-    const response = await fetch(url)
+    const response = await fetchWithRetry(url)
 
     if (!response.ok) {
       console.error('[mangadex] Failed to fetch manga', mangaId, ':', response.status)
