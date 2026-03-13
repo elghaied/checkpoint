@@ -3,6 +3,9 @@ import { cleanSearchQuery, getFormat, getFormatFromLanguage } from '@/shared/uti
 import { searchAniList, collectTitles, normalise, scorePair } from './anilist'
 import { searchMangaDex } from './mangadex'
 import { CONFIDENCE_THRESHOLD, MAX_LOW_CONFIDENCE_RESULTS } from '@/shared/constants'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('search')
 
 /**
  * Calculate the best confidence score for a set of titles against an extracted title.
@@ -88,15 +91,15 @@ export async function searchWithFallback(
 ): Promise<UnifiedSearchResult[]> {
   // Prefer extractedTitle (clean manga name) over the full query (may include chapter, site name, etc.)
   const searchQuery = cleanSearchQuery(extractedTitle || query) || cleanSearchQuery(query) || query
-  console.log('[searchService] Searching with fallback for:', searchQuery, '(original:', query, ', extracted:', extractedTitle, ')')
+  log.info('Searching with fallback for:', searchQuery, '(original:', query, ', extracted:', extractedTitle, ')')
 
   // Try AniList first
   const anilistResults = await searchAniList(searchQuery)
   const normalizedAnilist = normalizeAniListResults(anilistResults, extractedTitle)
   const validAnilist = normalizedAnilist.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
-  console.log(
-    '[searchService] AniList:',
+  log.debug(
+    'AniList:',
     anilistResults.length,
     'total,',
     validAnilist.length,
@@ -110,18 +113,18 @@ export async function searchWithFallback(
 
   // No AniList results passed threshold — return top 5 low-confidence results if available
   if (normalizedAnilist.length > 0) {
-    console.log('[searchService] AniList had no valid matches, returning top low-confidence results')
+    log.info('AniList had no valid matches, returning top low-confidence results')
     return normalizedAnilist.sort((a, b) => b.confidence - a.confidence).slice(0, MAX_LOW_CONFIDENCE_RESULTS)
   }
 
   // Fallback to MangaDex
-  console.log('[searchService] AniList had no results, trying MangaDex')
+  log.info('AniList had no results, trying MangaDex')
   const mangadexResults = await searchMangaDex(searchQuery)
   const normalizedMangadex = normalizeMangaDexResults(mangadexResults, extractedTitle)
   const validMangadex = normalizedMangadex.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
-  console.log(
-    '[searchService] MangaDex:',
+  log.debug(
+    'MangaDex:',
     mangadexResults.length,
     'total,',
     validMangadex.length,
@@ -134,7 +137,7 @@ export async function searchWithFallback(
 
   // No MangaDex results passed threshold — return top 5 low-confidence results
   if (normalizedMangadex.length > 0) {
-    console.log('[searchService] MangaDex had no valid matches, returning top low-confidence results')
+    log.info('MangaDex had no valid matches, returning top low-confidence results')
     return normalizedMangadex.sort((a, b) => b.confidence - a.confidence).slice(0, MAX_LOW_CONFIDENCE_RESULTS)
   }
 

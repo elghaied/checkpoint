@@ -1,6 +1,9 @@
 import type { MangaDexMedia } from '@/shared/types'
 import { SEARCH_RESULTS_PER_PAGE, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
 import { fetchWithRetry } from './retry'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('mangadex')
 
 const MANGADEX_API = 'https://api.mangadex.org'
 
@@ -77,7 +80,7 @@ function extractCoverUrl(mangaId: string, relationships: MangaDexRelationship[])
  * Search MangaDex for manga matching the given title string.
  */
 export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
-  console.log('[mangadex] Searching for:', query)
+  log.debug('Searching for:', query)
 
   const url = new URL(`${MANGADEX_API}/manga`)
   url.searchParams.set('title', query)
@@ -89,22 +92,22 @@ export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
   try {
     response = await fetchWithRetry(url.toString())
   } catch (err) {
-    console.error('[mangadex] Network error during search:', err)
+    log.error('Network error during search:', err)
     return []
   }
 
-  console.log('[mangadex] Response status:', response.status)
+  log.debug('Response status:', response.status)
 
   if (!response.ok) {
     const text = await response.text()
-    console.error('[mangadex] MangaDex returned HTTP', response.status, text)
+    log.error('MangaDex returned HTTP', response.status, text)
     return []
   }
 
   const json: MangaDexSearchResponse = await response.json()
 
   if (json.result !== 'ok') {
-    console.error('[mangadex] API returned error result')
+    log.error('API returned error result')
     return []
   }
 
@@ -118,7 +121,7 @@ export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
     lastChapter: manga.attributes.lastChapter,
   }))
 
-  console.log('[mangadex] Found', results.length, 'results')
+  log.debug('Found', results.length, 'results')
 
   return results
 }
@@ -154,7 +157,7 @@ async function fetchSingleMangaInfo(mangaId: string): Promise<MangaDexChapterRes
     const response = await fetchWithRetry(url)
 
     if (!response.ok) {
-      console.error('[mangadex] Failed to fetch manga', mangaId, ':', response.status)
+      log.error('Failed to fetch manga', mangaId, ':', response.status)
       return null
     }
 
@@ -174,7 +177,7 @@ async function fetchSingleMangaInfo(mangaId: string): Promise<MangaDexChapterRes
       lastChapter: isNaN(lastChapter as number) ? null : lastChapter,
     }
   } catch (err) {
-    console.error('[mangadex] Error fetching manga', mangaId, ':', err)
+    log.error('Error fetching manga', mangaId, ':', err)
     return null
   }
 }
@@ -192,7 +195,7 @@ export async function fetchBatchMangaDexInfo(
     return results
   }
 
-  console.log('[mangadex] Fetching chapter info for', mangaIds.length, 'items')
+  log.debug('Fetching chapter info for', mangaIds.length, 'items')
 
   // Fetch sequentially with small delay to respect rate limits
   for (const id of mangaIds) {
@@ -207,7 +210,7 @@ export async function fetchBatchMangaDexInfo(
     }
   }
 
-  console.log('[mangadex] Fetched info for', results.size, 'items')
+  log.debug('Fetched info for', results.size, 'items')
 
   return results
 }

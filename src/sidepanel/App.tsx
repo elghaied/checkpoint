@@ -12,6 +12,9 @@ import SettingsPage from './components/SettingsPage'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { deleteItem, ping } from './services/messaging'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('app')
 
 type View = 'list' | 'settings'
 
@@ -56,7 +59,7 @@ export default function App() {
       setEditingItem(null)
       refresh()
     } catch (err) {
-      console.error('Failed to save:', err)
+      log.error('Failed to save:', err)
     }
   }
 
@@ -68,7 +71,7 @@ export default function App() {
       setEditingItem(null)
       refresh()
     } catch (err) {
-      console.error('Failed to delete:', err)
+      log.error('Failed to delete:', err)
     }
   }
 

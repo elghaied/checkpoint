@@ -3,6 +3,9 @@ import { cleanSearchQuery, getFormat } from '@/shared/utils'
 import type { MediaFormat } from '@/shared/utils'
 import { SEARCH_RESULTS_PER_PAGE, BATCH_FETCH_PAGE_SIZE } from '@/shared/constants'
 import { fetchWithRetry } from './retry'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('anilist')
 
 // ---------------------------------------------------------------------------
 // GraphQL
@@ -81,7 +84,7 @@ interface AniListBatchResponse {
  */
 export async function searchAniList(query: string): Promise<AniListMedia[]> {
   const cleanedQuery = cleanSearchQuery(query) || query // fallback to original if filtering removes everything
-  console.log('[anilist] Searching for:', cleanedQuery, '(original:', query, ')')
+  log.debug('Searching for:', cleanedQuery, '(original:', query, ')')
 
   let response: Response
 
@@ -95,28 +98,27 @@ export async function searchAniList(query: string): Promise<AniListMedia[]> {
       }),
     })
   } catch (err) {
-    console.error('[anilist] Network error during search:', err)
+    log.error('Network error during search:', err)
     return []
   }
 
-  console.log('[anilist] Response status:', response.status)
+  log.debug('Response status:', response.status)
 
   if (!response.ok) {
     const text = await response.text()
-    console.error('[anilist] AniList returned HTTP', response.status, text)
+    log.error('AniList returned HTTP', response.status, text)
     return []
   }
 
   const json: AniListResponse = await response.json()
-  console.log('[anilist] Response:', JSON.stringify(json, null, 2))
 
   if (json.errors && json.errors.length > 0) {
-    console.error('[anilist] GraphQL errors:', json.errors.map((e) => e.message))
+    log.error('GraphQL errors:', json.errors.map((e) => e.message))
     return []
   }
 
   const results = json.data?.Page.media ?? []
-  console.log('[anilist] Found', results.length, 'results')
+  log.debug('Found', results.length, 'results')
 
   return results
 }
@@ -238,7 +240,7 @@ export async function fetchBatchChapterInfo(
     return results
   }
 
-  console.log('[anilist] Batch fetching chapter info for', ids.length, 'items')
+  log.debug('Batch fetching chapter info for', ids.length, 'items')
 
   let response: Response
 
@@ -252,25 +254,25 @@ export async function fetchBatchChapterInfo(
       }),
     })
   } catch (err) {
-    console.error('[anilist] Network error during batch fetch:', err)
+    log.error('Network error during batch fetch:', err)
     return results
   }
 
   if (!response.ok) {
     const text = await response.text()
-    console.error('[anilist] Batch fetch returned HTTP', response.status, text)
+    log.error('Batch fetch returned HTTP', response.status, text)
     return results
   }
 
   const json: AniListBatchResponse = await response.json()
 
   if (json.errors && json.errors.length > 0) {
-    console.error('[anilist] GraphQL errors:', json.errors.map((e) => e.message))
+    log.error('GraphQL errors:', json.errors.map((e) => e.message))
     return results
   }
 
   const media = json.data?.Page.media ?? []
-  console.log('[anilist] Batch fetch returned', media.length, 'results')
+  log.debug('Batch fetch returned', media.length, 'results')
 
   for (const m of media) {
     results.set(String(m.id), {

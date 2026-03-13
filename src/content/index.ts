@@ -1,15 +1,18 @@
 // Checkpoint Content Script
-console.log('Checkpoint content script loaded')
-
 import { cleanTitle, extractChapter, extractFromOgTitle, extractFromH1 } from './metadata'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('content')
+
+log.debug('Content script loaded')
 
 // Message listener
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('Content script received message:', message)
+  log.debug('Received message:', message.type)
 
   if (message.type === 'EXTRACT_METADATA') {
     const metadata = extractPageMetadata()
-    console.log('[Checkpoint] Extracted metadata:', metadata)
+    log.debug('Extracted metadata:', metadata)
     sendResponse(metadata)
   }
 

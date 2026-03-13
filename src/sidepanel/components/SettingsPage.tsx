@@ -2,6 +2,9 @@ import { useState, useRef } from 'react'
 import { useSettings } from '../hooks/useSettings'
 import { exportData, importData, checkForUpdates } from '../services/messaging'
 import type { ExportedData } from '@/shared/types'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('app')
 
 interface SettingsPageProps {
   onBack: () => void
@@ -30,7 +33,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err) {
-      console.error('Export failed:', err)
+      log.error('Export failed:', err)
     }
   }
 
@@ -58,7 +61,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       // Clear the input so the same file can be selected again
       e.target.value = ''
     } catch (err) {
-      console.error('Import failed:', err)
+      log.error('Import failed:', err)
       alert(err instanceof Error ? err.message : 'Failed to import backup')
       e.target.value = ''
     }
@@ -69,7 +72,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       setIsChecking(true)
       await checkForUpdates()
     } catch (err) {
-      console.error('Check failed:', err)
+      log.error('Check failed:', err)
     } finally {
       setIsChecking(false)
     }

@@ -6,8 +6,11 @@ import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
 import type { MessageRequest, ExportedData } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS } from '@/shared/constants'
+import { createLogger } from '@/shared/logger'
 
-console.log('Checkpoint service worker started')
+const log = createLogger('background')
+
+log.info('Checkpoint service worker started')
 
 // Set up side panel behavior
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
@@ -24,13 +27,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Background received message:', message)
+  log.debug('Received message:', message.type)
 
   // Handle messages asynchronously
   handleMessage(message as MessageRequest, sender)
     .then((result) => sendResponse({ data: result }))
     .catch((error) => {
-      console.error('Message handler error:', error)
+      log.error('Message handler error:', error)
       sendResponse({ error: error.message })
     })
 
@@ -82,23 +85,23 @@ async function handleMessage(
     }
 
     case 'SEARCH_ANILIST': {
-      console.log('[SEARCH_ANILIST] Searching for:', message.query)
+      log.debug('SEARCH_ANILIST:', message.query)
       const results = await searchAniList(message.query)
-      console.log('[SEARCH_ANILIST] Results:', results.length, 'items found')
+      log.debug('SEARCH_ANILIST results:', results.length)
       return results
     }
 
     case 'SEARCH_MANGA': {
-      console.log('[SEARCH_MANGA] Searching with fallback for:', message.query)
+      log.debug('SEARCH_MANGA:', message.query)
       const results = await searchWithFallback(message.query, message.extractedTitle)
-      console.log('[SEARCH_MANGA] Results:', results.length, 'items found')
+      log.debug('SEARCH_MANGA results:', results.length)
       return results
     }
 
     case 'SEARCH_MANGADEX': {
-      console.log('[SEARCH_MANGADEX] Searching for:', message.query)
+      log.debug('SEARCH_MANGADEX:', message.query)
       const results = await searchMangaDex(message.query)
-      console.log('[SEARCH_MANGADEX] Results:', results.length, 'items found')
+      log.debug('SEARCH_MANGADEX results:', results.length)
       return results
     }
 
@@ -214,7 +217,7 @@ async function handleMessage(
     }
 
     default:
-      console.warn('Unknown message type:', message)
+      log.warn('Unknown message type:', message)
       return { error: 'Unknown message type' }
   }
 }

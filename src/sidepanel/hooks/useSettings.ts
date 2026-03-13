@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import type { ExtensionSettings } from '@/shared/types'
 import { DEFAULT_SETTINGS } from '@/shared/types'
 import { getSettings, updateSettings as updateSettingsApi } from '../services/messaging'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('hooks')
 
 interface UseSettingsReturn {
   settings: ExtensionSettings
@@ -23,7 +26,7 @@ export function useSettings(): UseSettingsReturn {
       const data = await getSettings()
       setSettings(data)
     } catch (err) {
-      console.error('Failed to fetch settings:', err)
+      log.error('Failed to fetch settings:', err)
       setError(err instanceof Error ? err.message : 'Failed to load settings')
     } finally {
       setLoading(false)
@@ -40,7 +43,7 @@ export function useSettings(): UseSettingsReturn {
       const updated = await updateSettingsApi(updates)
       setSettings(updated)
     } catch (err) {
-      console.error('Failed to update settings:', err)
+      log.error('Failed to update settings:', err)
       setError(err instanceof Error ? err.message : 'Failed to update settings')
       throw err
     }

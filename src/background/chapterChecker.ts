@@ -6,6 +6,9 @@ import { fetchBatchMangaDexInfo, searchMangaDex } from './mangadex'
 import { showNewChaptersNotification, showBatchNotification } from './notifications'
 import type { TrackedItem } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('chapters')
 
 /**
  * Search MangaDex by title to get chapter info as fallback.
@@ -23,7 +26,7 @@ async function getMangaDexChaptersByTitle(title: string): Promise<number | null>
     const chapters = parseInt(best.lastChapter, 10)
     return isNaN(chapters) ? null : chapters
   } catch (err) {
-    console.error('[chapterChecker] MangaDex fallback search failed for', title, ':', err)
+    log.error('MangaDex fallback search failed for', title, ':', err)
     return null
   }
 }
@@ -43,8 +46,8 @@ export async function setupChapterCheckAlarm(): Promise<void> {
     periodInMinutes: settings.checkIntervalMinutes,
   })
 
-  console.log(
-    '[chapterChecker] Alarm set up with interval:',
+  log.info(
+    'Alarm set up with interval:',
     settings.checkIntervalMinutes,
     'minutes'
   )
@@ -54,13 +57,13 @@ export async function setupChapterCheckAlarm(): Promise<void> {
  * Handle the alarm event - check for chapter updates.
  */
 export async function handleChapterCheckAlarm(): Promise<void> {
-  console.log('[chapterChecker] Running chapter check...')
+  log.info('Running chapter check...')
 
   const settings = await storageService.getSettings()
 
   // Check global notifications toggle
   if (!settings.globalNotificationsEnabled) {
-    console.log('[chapterChecker] Global notifications disabled, skipping check')
+    log.debug('Global notifications disabled, skipping check')
     return
   }
 
@@ -68,11 +71,11 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   const items = await storageService.getItemsForUpdate()
 
   if (items.length === 0) {
-    console.log('[chapterChecker] No items to check')
+    log.debug('No items to check')
     return
   }
 
-  console.log('[chapterChecker] Checking', items.length, 'items')
+  log.info('Checking', items.length, 'items')
 
   // Split items by provider
   const anilistItems = items.filter((item) => item.provider === 'anilist')
@@ -89,18 +92,18 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 
   // Log fetched data
   if (anilistInfo.size > 0) {
-    console.log('[chapterChecker] AniList data:')
+    log.debug('AniList data:')
     for (const [id, info] of anilistInfo) {
       const item = anilistItems.find((i) => i.providerId === id)
-      console.log(`  - ${item?.titles.main || id}: chapters=${info.chapters}, status=${info.status}`)
+      log.debug(`  - ${item?.titles.main || id}: chapters=${info.chapters}, status=${info.status}`)
     }
   }
 
   if (mangadexInfo.size > 0) {
-    console.log('[chapterChecker] MangaDex data:')
+    log.debug('MangaDex data:')
     for (const [id, info] of mangadexInfo) {
       const item = mangadexItems.find((i) => i.providerId === id)
-      console.log(`  - ${item?.titles.main || id}: chapters=${info.lastChapter}, status=${info.status}`)
+      log.debug(`  - ${item?.titles.main || id}: chapters=${info.lastChapter}, status=${info.status}`)
     }
   }
 
@@ -113,12 +116,12 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   // Fetch MangaDex fallback for AniList items with null chapters
   const mangadexFallback = new Map<string, number | null>()
   if (anilistNullChapterItems.length > 0) {
-    console.log('[chapterChecker] Fetching MangaDex fallback for', anilistNullChapterItems.length, 'items with null AniList chapters')
+    log.debug('Fetching MangaDex fallback for', anilistNullChapterItems.length, 'items with null AniList chapters')
 
     for (const item of anilistNullChapterItems) {
       const chapters = await getMangaDexChaptersByTitle(item.titles.main)
       mangadexFallback.set(item.providerId, chapters)
-      console.log(`  - ${item.titles.main}: MangaDex fallback chapters=${chapters}`)
+      log.debug(`  - ${item.titles.main}: MangaDex fallback chapters=${chapters}`)
 
       // Small delay between searches
       if (anilistNullChapterItems.length > 1) {
@@ -163,9 +166,9 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 
   // Log items with no chapter data from any provider
   if (itemsWithNoData.length > 0) {
-    console.log('[chapterChecker] No chapter data available from any provider for:')
+    log.debug('No chapter data available from any provider for:')
     for (const item of itemsWithNoData) {
-      console.log(`  - ${item.titles.main} (${item.provider})`)
+      log.debug(`  - ${item.titles.main} (${item.provider})`)
     }
   }
 
@@ -190,7 +193,7 @@ export async function handleChapterCheckAlarm(): Promise<void> {
     const info = chapterInfo.get(item.providerId)
 
     if (!info) {
-      console.log('[chapterChecker] No info found for', item.titles.main, '(provider:', item.provider, ')')
+      log.debug('No info found for', item.titles.main, '(provider:', item.provider, ')')
       continue
     }
 
@@ -211,8 +214,8 @@ export async function handleChapterCheckAlarm(): Promise<void> {
       const chaptersWhenAdded = item.chaptersWhenAdded ?? 0
 
       if (settings.notifyOnlyNewReleases && newChapters <= chaptersWhenAdded) {
-        console.log(
-          '[chapterChecker] Skipping notification for',
+        log.debug(
+          'Skipping notification for',
           item.titles.main,
           '- chapters not beyond baseline'
         )
@@ -221,8 +224,8 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 
       const chaptersAhead = newChapters - (previousChapters ?? 0)
 
-      console.log(
-        '[chapterChecker] New chapters for',
+      log.info(
+        'New chapters for',
         item.titles.main,
         ':',
         previousChapters,
@@ -242,7 +245,7 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   // Save all updates
   if (updates.length > 0) {
     await storageService.bulkUpdateChapterInfo(updates)
-    console.log('[chapterChecker] Updated chapter info for', updates.length, 'items')
+    log.debug('Updated chapter info for', updates.length, 'items')
   }
 
   // Send notifications
@@ -260,7 +263,7 @@ export async function handleChapterCheckAlarm(): Promise<void> {
     await showBatchNotification(itemsWithNewChapters.length)
   }
 
-  console.log('[chapterChecker] Check complete')
+  log.info('Check complete')
 }
 
 /**

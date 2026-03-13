@@ -1,5 +1,9 @@
 // Browser notification creation for new chapter releases
 
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('notifications')
+
 export interface NotificationOptions {
   title: string
   chaptersAhead: number
@@ -29,9 +33,9 @@ export async function showNewChaptersNotification(options: NotificationOptions):
       priority: 1,
     })
 
-    console.log('[notifications] Showed notification for', title, '-', message)
+    log.info('Showed notification for', title, '-', message)
   } catch (err) {
-    console.error('[notifications] Failed to create notification:', err)
+    log.error('Failed to create notification:', err)
   }
 }
 
@@ -50,8 +54,8 @@ export async function showBatchNotification(count: number): Promise<void> {
       priority: 1,
     })
 
-    console.log('[notifications] Showed batch notification for', count, 'items')
+    log.info('Showed batch notification for', count, 'items')
   } catch (err) {
-    console.error('[notifications] Failed to create batch notification:', err)
+    log.error('Failed to create batch notification:', err)
   }
 }

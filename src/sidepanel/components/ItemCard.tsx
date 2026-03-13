@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { TrackedItem } from '@/shared/types'
 import { toggleItemNotifications } from '../services/messaging'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('app')
 
 interface ItemCardProps {
   item: TrackedItem
@@ -46,7 +49,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotif
       await toggleItemNotifications(item.providerId, newEnabled)
       onToggleNotifications?.(newEnabled)
     } catch (err) {
-      console.error('Failed to toggle notifications:', err)
+      log.error('Failed to toggle notifications:', err)
     } finally {
       setBellLoading(false)
     }
