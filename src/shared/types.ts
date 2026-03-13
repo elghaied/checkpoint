@@ -76,6 +76,18 @@ export interface ExportedData {
   items: ExportedItem[]
 }
 
+// Import result with per-title details
+export interface ImportResult {
+  imported: number
+  updated: number
+  skipped: number
+  details: {
+    importedTitles: string[]
+    updatedTitles: string[]
+    skippedTitles: string[]
+  }
+}
+
 // AniList media response
 export interface AniListMedia {
   id: number

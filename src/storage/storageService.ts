@@ -1,4 +1,4 @@
-import { TrackedItem, ExtensionSettings, DEFAULT_SETTINGS, ExportedData, ExportedItem } from '@/shared/types'
+import { TrackedItem, ExtensionSettings, DEFAULT_SETTINGS, ExportedData, ExportedItem, ImportResult } from '@/shared/types'
 
 const STORAGE_KEY = 'trackedItems'
 const SETTINGS_KEY = 'settings'
@@ -233,13 +233,18 @@ export class StorageService {
    * Import data from backup/sync.
    * Merges with existing data using last-write-wins for conflicts.
    */
-  async importData(data: ExportedData): Promise<{ imported: number; updated: number; skipped: number }> {
+  async importData(data: ExportedData): Promise<ImportResult> {
     const existingItems = await readAll()
     const existingMap = new Map(existingItems.map((item) => [item.providerId, item]))
 
     let imported = 0
     let updated = 0
     let skipped = 0
+    const details = {
+      importedTitles: [] as string[],
+      updatedTitles: [] as string[],
+      skippedTitles: [] as string[],
+    }
 
     for (const importItem of data.items) {
       const existing = existingMap.get(importItem.providerId)
@@ -251,6 +256,7 @@ export class StorageService {
           lastApiCheck: null,
         }
         existingMap.set(importItem.providerId, newItem)
+        details.importedTitles.push(importItem.titles.main)
         imported++
       } else if (importItem.updatedAt > existing.updatedAt) {
         // Imported item is newer - update
@@ -259,8 +265,10 @@ export class StorageService {
           ...importItem,
           lastApiCheck: existing.lastApiCheck, // Preserve local API check time
         })
+        details.updatedTitles.push(importItem.titles.main)
         updated++
       } else {
+        details.skippedTitles.push(importItem.titles.main)
         skipped++
       }
     }
@@ -272,6 +280,6 @@ export class StorageService {
       await writeSettings(data.settings)
     }
 
-    return { imported, updated, skipped }
+    return { imported, updated, skipped, details }
   }
 }

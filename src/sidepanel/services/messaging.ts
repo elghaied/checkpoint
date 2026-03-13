@@ -7,6 +7,7 @@ import type {
   ExtensionSettings,
   ExportedData,
   UnifiedSearchResult,
+  ImportResult,
 } from '@/shared/types'
 
 /**
@@ -141,6 +142,6 @@ export async function exportData(): Promise<ExportedData> {
 /**
  * Import data from backup
  */
-export async function importData(data: ExportedData): Promise<{ imported: number; updated: number; skipped: number }> {
-  return sendMessage<{ imported: number; updated: number; skipped: number }>({ type: 'IMPORT_DATA', data })
+export async function importData(data: ExportedData): Promise<ImportResult> {
+  return sendMessage<ImportResult>({ type: 'IMPORT_DATA', data })
 }

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useSettings } from '../hooks/useSettings'
 import { exportData, importData, checkForUpdates } from '../services/messaging'
-import type { ExportedData } from '@/shared/types'
+import type { ExportedData, ImportResult } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
 import './SettingsPage.css'
 
@@ -13,11 +13,7 @@ interface SettingsPageProps {
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const { settings, loading, updateSettings } = useSettings()
-  const [importResult, setImportResult] = useState<{
-    imported: number
-    updated: number
-    skipped: number
-  } | null>(null)
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -57,7 +53,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
 
       const result = await importData(data)
       setImportResult(result)
-      setTimeout(() => setImportResult(null), 8000)
 
       // Clear the input so the same file can be selected again
       e.target.value = ''
@@ -203,12 +198,51 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
 
           {importResult && (
             <div className="import-result">
-              <div className="import-result__title">Import complete</div>
-              <div className="import-result__stats">
-                {importResult.imported} new items imported<br />
-                {importResult.updated} items updated<br />
-                {importResult.skipped} items skipped (older than existing)
+              <div className="import-result__header">
+                <div className="import-result__title">Import complete</div>
+                <button
+                  className="import-result__dismiss"
+                  onClick={() => setImportResult(null)}
+                  aria-label="Dismiss"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                </button>
               </div>
+              <div className="import-result__stats">
+                {importResult.imported} added, {importResult.updated} updated, {importResult.skipped} skipped
+              </div>
+              {importResult.details.importedTitles.length > 0 && (
+                <div className="import-result__group">
+                  <div className="import-result__group-label">Added</div>
+                  <ul className="import-result__list">
+                    {importResult.details.importedTitles.map((title) => (
+                      <li key={title}>{title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {importResult.details.updatedTitles.length > 0 && (
+                <div className="import-result__group">
+                  <div className="import-result__group-label">Updated</div>
+                  <ul className="import-result__list">
+                    {importResult.details.updatedTitles.map((title) => (
+                      <li key={title}>{title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {importResult.details.skippedTitles.length > 0 && (
+                <div className="import-result__group">
+                  <div className="import-result__group-label">Skipped</div>
+                  <ul className="import-result__list">
+                    {importResult.details.skippedTitles.map((title) => (
+                      <li key={title}>{title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
