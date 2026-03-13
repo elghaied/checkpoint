@@ -144,7 +144,7 @@
 }
 
 .item-card__btn--edit:hover {
-  background-color: var(--border);
+  background-color: var(--surface-hover);
 }
 
 .item-card__btn--open {

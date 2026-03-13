@@ -1,40 +1,51 @@
 .edit-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 8px;
+  gap: 16px;
+  padding: 12px 8px;
 }
 
 .edit-form__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .edit-form__label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 .edit-form__input,
 .edit-form__select {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background-color: var(--bg-card);
+  padding: 10px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   font-size: 14px;
   font-family: inherit;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.edit-form__input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.edit-form__input:hover,
+.edit-form__select:hover {
+  border-color: var(--accent-glow);
 }
 
 .edit-form__input:focus,
 .edit-form__select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .edit-form__input--error {
@@ -46,15 +57,28 @@
   color: var(--accent);
 }
 
+/* Progress input uses mono font like ItemCard */
+#edit-progress {
+  font-family: var(--font-mono);
+}
+
 .edit-form__select {
-  appearance: auto;
+  appearance: none;
   cursor: pointer;
+  color-scheme: dark;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%23a0a0a0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
 }
 
 .edit-form__actions {
   display: flex;
   gap: 8px;
-  padding-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface-border);
+  margin-top: 4px;
 }
 
 .alt-names {
@@ -68,12 +92,17 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  padding: 4px 10px;
+  background-color: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
   font-size: 12px;
   color: var(--text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.alt-names__chip:hover {
+  border-color: var(--accent-glow);
 }
 
 .alt-names__remove {
@@ -85,6 +114,7 @@
   color: var(--text-secondary);
   cursor: pointer;
   line-height: 1;
+  transition: color 0.15s ease;
 }
 
 .alt-names__remove:hover {
