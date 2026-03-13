@@ -96,6 +96,17 @@ const SearchModal: React.FC<SearchModalProps> = ({
               </div>
             </button>
           ))}
+
+          {results.length > 0 && (
+            <div className="search-fallback">
+              <button type="button" className="btn btn--secondary" onClick={handleGoogleSearch}>
+                None of the above
+              </button>
+              <span className="search-fallback__hint">
+                Opens Google search for alternative names
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
