@@ -187,7 +187,8 @@ body {
 }
 
 .modal {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--surface-border);
   border-radius: 12px;
   width: 100%;
   max-width: 400px;
@@ -203,7 +204,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  background: linear-gradient(180deg, var(--bg-secondary), transparent);
+  background: var(--surface);
   border-bottom: 1px solid;
   border-image: linear-gradient(90deg, transparent, var(--accent-glow), transparent) 1;
 }
