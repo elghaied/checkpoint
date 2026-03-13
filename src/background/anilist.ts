@@ -164,10 +164,13 @@ export function normalise(s: string): string {
  * Compute a similarity score between two already-normalised strings.
  *
  * Scoring tiers (all case-insensitive, whitespace-collapsed):
- *   1.0  – exact match
- *   0.9  – one string starts with the other (prefix match)
- *   0.7  – one string contains the other (substring match)
- *   0.0  – no containment relationship
+ *   1.0       – exact match
+ *   0.9       – one string starts with the other (prefix match)
+ *   0.85      – space-stripped exact match
+ *   0.8       – space-stripped prefix match
+ *   0.7       – substring match (regular or space-stripped)
+ *   0.01–0.65 – token overlap (Jaccard similarity, capped at 0.65)
+ *   0.0       – zero shared tokens or string too short
  *
  * The best score across all titles for a given media entry is kept.
  */
@@ -185,7 +188,16 @@ export function scorePair(a: string, b: string): number {
   if (spacelessA.startsWith(spacelessB) || spacelessB.startsWith(spacelessA)) return 0.8
   if (spacelessA.includes(spacelessB) || spacelessB.includes(spacelessA)) return 0.7
 
-  return 0
+  // Token overlap (Jaccard similarity), capped at 0.65
+  const tokensA = new Set(a.split(/[^a-z0-9]+/).filter(Boolean))
+  const tokensB = new Set(b.split(/[^a-z0-9]+/).filter(Boolean))
+  let intersection = 0
+  for (const t of tokensA) {
+    if (tokensB.has(t)) intersection++
+  }
+  const union = new Set([...tokensA, ...tokensB]).size
+  if (union === 0) return 0
+  return Math.min(intersection / union, 0.65)
 }
 
 /**
