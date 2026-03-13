@@ -3,17 +3,44 @@
   gap: 12px;
   padding: 12px;
   margin-bottom: 10px;
-  background-color: var(--bg-card);
+  background-color: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  animation: cardIn 0.35s ease both;
+}
+
+.item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border-color: var(--accent-glow);
+}
+
+.item-card__cover-wrap {
+  position: relative;
+  overflow: hidden;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  flex-shrink: 0;
+  width: 72px;
+  height: 108px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.item-card__cover-wrap::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  content: '';
+  background: linear-gradient(transparent, rgba(0,0,0,0.4));
 }
 
 .item-card__cover {
-  width: 64px;
-  height: 96px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 4px;
-  flex-shrink: 0;
+  display: block;
 }
 
 .item-card__info {
@@ -67,8 +94,8 @@
 .item-card__ahead {
   font-size: 11px;
   font-weight: 600;
-  color: #27ae60;
-  background-color: rgba(39, 174, 96, 0.15);
+  color: var(--progress);
+  background-color: var(--progress-dim);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -85,7 +112,8 @@
 
 .item-card__progress {
   font-size: 13px;
-  color: var(--accent);
+  color: var(--progress);
+  font-family: var(--font-mono);
   font-weight: 500;
   margin-bottom: 2px;
 }
@@ -126,4 +154,19 @@
 
 .item-card__btn--open:hover {
   background-color: var(--accent-hover);
+}
+
+.item-card__progress-bar {
+  height: 3px;
+  background: var(--surface-border);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.item-card__progress-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--progress), #00b894);
 }

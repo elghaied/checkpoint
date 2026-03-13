@@ -3,13 +3,6 @@
   flex-direction: column;
 }
 
-.item-list--loading {
-  align-items: center;
-  justify-content: center;
-  padding: 48px 16px;
-  color: var(--text-secondary);
-}
-
 .error-state {
   display: flex;
   flex-direction: column;
@@ -25,4 +18,40 @@
   font-size: 12px;
   color: var(--text-secondary);
   opacity: 0.8;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.skeleton-card__cover {
+  width: 72px;
+  height: 108px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-hover) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+.skeleton-card__lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.skeleton-card__text {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-hover) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
 }

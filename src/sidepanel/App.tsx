@@ -23,7 +23,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabValue>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [connectionError, setConnectionError] = useState<string | null>(null)
-  const { items, loading, error, refresh } = useTrackedItems(activeTab === 'ALL' ? undefined : activeTab)
+  const { items, loading, error, refresh } = useTrackedItems()
   const addItem = useAddItem(refresh)
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{
@@ -37,14 +37,22 @@ export default function App() {
     })
   }, [])
 
+  const tabCounts = useMemo(() => ({
+    ALL: items.length,
+    MANGA: items.filter((i) => i.format === 'MANGA').length,
+    MANHWA: items.filter((i) => i.format === 'MANHWA').length,
+    MANHUA: items.filter((i) => i.format === 'MANHUA').length,
+  }), [items])
+
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return items
+    const tabFiltered = activeTab === 'ALL' ? items : items.filter((i) => i.format === activeTab)
+    if (!searchQuery.trim()) return tabFiltered
     const q = searchQuery.toLowerCase().trim()
-    return items.filter((item) => {
+    return tabFiltered.filter((item) => {
       const allTitles = [item.titles.main, ...item.titles.alt]
       return allTitles.some((t) => t.toLowerCase().includes(q))
     })
-  }, [items, searchQuery])
+  }, [items, activeTab, searchQuery])
 
   const displayItems = useMemo(() => {
     if (!pendingDelete) return filteredItems
@@ -130,14 +138,15 @@ export default function App() {
   return (
     <ErrorBoundary>
     <div className="app">
-      <Header onSettingsClick={() => setView('settings')} />
+      <Header onSettingsClick={() => setView('settings')} count={items.length} />
       {connectionError && (
         <div className="connection-banner">{connectionError}</div>
       )}
       <main className="main">
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
         <ItemList
+          key={activeTab}
           items={displayItems}
           loading={loading}
           error={error}

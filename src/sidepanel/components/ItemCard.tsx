@@ -8,6 +8,7 @@ const log = createLogger('app')
 
 interface ItemCardProps {
   item: TrackedItem
+  index: number
   onEdit: () => void
   onOpen: () => void
   onToggleNotifications?: (enabled: boolean) => void
@@ -28,7 +29,7 @@ function formatUpdatedAt(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString()
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotifications }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications }) => {
   const [bellLoading, setBellLoading] = useState(false)
 
   const progressLabel =
@@ -57,12 +58,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotif
   }
 
   return (
-    <div className="item-card">
-      <img
-        className="item-card__cover"
-        src={item.coverImage}
-        alt={`Cover for ${item.titles.main}`}
-      />
+    <div className="item-card" style={{ animationDelay: `${Math.min(index, 10) * 0.05}s` }}>
+      <div className="item-card__cover-wrap">
+        <img
+          className="item-card__cover"
+          src={item.coverImage}
+          alt={`Cover for ${item.titles.main}`}
+        />
+      </div>
       <div className="item-card__info">
         <div className="item-card__header">
           <h3 className="item-card__title">{item.titles.main}</h3>
@@ -89,6 +92,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onOpen, onToggleNotif
             <span className="item-card__ahead">+{chaptersAhead} ahead</span>
           )}
         </div>
+        {item.latestKnownChapters != null && item.latestKnownChapters > 0 && (
+          <div className="item-card__progress-bar">
+            <div className="item-card__progress-bar-fill" style={{ width: `${Math.min(100, (userProgress / latestChapters) * 100)}%` }} />
+          </div>
+        )}
         <p className="item-card__updated">{formatUpdatedAt(item.updatedAt)}</p>
         <div className="item-card__actions">
           <button className="item-card__btn item-card__btn--edit" onClick={onEdit}>

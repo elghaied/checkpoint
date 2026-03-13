@@ -5,12 +5,12 @@
   width: 56px;
   height: 56px;
   border: none;
-  border-radius: 50%;
-  background-color: var(--accent);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   color: #fff;
   font-size: 28px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(233,69,96,0.35);
   transition: background-color 0.15s ease, transform 0.15s ease;
   display: flex;
   align-items: center;

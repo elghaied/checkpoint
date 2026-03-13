@@ -9,11 +9,12 @@ const TABS: TabValue[] = ['ALL', 'MANGA', 'MANHWA', 'MANHUA']
 interface TabBarProps {
   activeTab: TabValue
   onTabChange: (tab: TabValue) => void
+  counts?: Record<TabValue, number>
 }
 
 export type { TabValue }
 
-const TabBar: React.FC<TabBarProps> = ({ activeTab, onTabChange }) => {
+const TabBar: React.FC<TabBarProps> = ({ activeTab, onTabChange, counts }) => {
   return (
     <div className="tab-bar">
       {TABS.map((tab) => (
@@ -23,6 +24,7 @@ const TabBar: React.FC<TabBarProps> = ({ activeTab, onTabChange }) => {
           onClick={() => onTabChange(tab)}
         >
           {tab.charAt(0) + tab.slice(1).toLowerCase()}
+          {counts && <span className="tab__count">{counts[tab]}</span>}
         </button>
       ))}
     </div>

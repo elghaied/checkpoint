@@ -106,7 +106,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       <div className="settings-page__content">
         {/* Notifications Section */}
         <div className="settings-section">
-          <h2 className="settings-section__title">Notifications</h2>
+          <h2 className="settings-section__title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            Notifications
+          </h2>
 
           <div className="settings-item">
             <div className="settings-item__info">
@@ -178,7 +181,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
 
         {/* Data Section */}
         <div className="settings-section">
-          <h2 className="settings-section__title">Data</h2>
+          <h2 className="settings-section__title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4zm0 2c3.87 0 6 1.5 6 2s-2.13 2-6 2-6-1.5-6-2 2.13-2 6-2zm6 12c0 .5-2.13 2-6 2s-6-1.5-6-2v-2.23c1.61.78 3.72 1.23 6 1.23s4.39-.45 6-1.23V17zm0-5c0 .5-2.13 2-6 2s-6-1.5-6-2V9.77C7.61 10.55 9.72 11 12 11s4.39-.45 6-1.23V12z"/></svg>
+            Data
+          </h2>
 
           <div className="settings-actions">
             <button className="btn btn--secondary" onClick={handleExport}>
@@ -249,7 +255,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
 
         {/* About Section */}
         <div className="settings-section">
-          <h2 className="settings-section__title">About</h2>
+          <h2 className="settings-section__title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            About
+          </h2>
           <div className="settings-item">
             <div className="settings-item__info">
               <div className="settings-item__label">Checkpoint</div>

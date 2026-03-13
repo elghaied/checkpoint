@@ -71,10 +71,11 @@ const SearchModal: React.FC<SearchModalProps> = ({
             </div>
           )}
 
-          {results.map((result) => (
+          {results.map((result, index) => (
             <button
               key={`${result.provider}-${result.id}`}
               className="search-result"
+              style={{ animationDelay: `${index * 0.05}s` }}
               onClick={() => onSelect(result)}
             >
               {result.coverUrl ? (
@@ -93,7 +94,9 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 <div className="search-result__meta">
                   {result.format} &bull; {result.provider}
                   {result.chapters && ` \u2022 ${result.chapters} chapters`}
-                  {result.confidence < 1 && ` \u2022 ${Math.round(result.confidence * 100)}% match`}
+                  {result.confidence < 1 && (
+                    <> &bull; <span className={result.confidence < 0.7 ? 'search-result__confidence--low' : result.confidence >= 0.9 ? 'search-result__confidence--high' : ''}>{Math.round(result.confidence * 100)}% match</span></>
+                  )}
                 </div>
               </div>
             </button>

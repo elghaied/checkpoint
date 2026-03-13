@@ -2,12 +2,17 @@ import './Header.css'
 
 interface HeaderProps {
   onSettingsClick: () => void
+  count: number
 }
 
-const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
+const Header: React.FC<HeaderProps> = ({ onSettingsClick, count }) => {
   return (
     <header className="header">
-      <h1>Checkpoint</h1>
+      <div className="header__brand">
+        <div className="header__logo">C</div>
+        <h1>Checkpoint</h1>
+        <span className="header__badge">{count} tracked</span>
+      </div>
       <button
         className="header__settings-btn"
         onClick={onSettingsClick}

@@ -26,8 +26,17 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onE
 
   if (loading) {
     return (
-      <div className="item-list item-list--loading">
-        <p>Loading...</p>
+      <div className="item-list">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="skeleton-card">
+            <div className="skeleton-card__cover" />
+            <div className="skeleton-card__lines">
+              <div className="skeleton-card__text" style={{ width: '70%' }} />
+              <div className="skeleton-card__text" style={{ width: '50%' }} />
+              <div className="skeleton-card__text" style={{ width: '40%' }} />
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -38,10 +47,11 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onE
 
   return (
     <div className="item-list">
-      {items.map((item) => (
+      {items.map((item, idx) => (
         <ItemCard
           key={item.providerId}
           item={item}
+          index={idx}
           onEdit={() => onEdit(item)}
           onOpen={() => onOpen(item)}
           onToggleNotifications={() => onRefresh()}
