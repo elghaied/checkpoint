@@ -27,16 +27,25 @@ export function useTrackedItems(format?: Format) {
     refresh()
   }, [refresh])
 
-  // Auto-refresh when storage changes (e.g. background chapter checker)
+  // Patch state in-place from storage change events instead of re-fetching
   useEffect(() => {
     const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if ('trackedItems' in changes) {
-        refresh()
+      if ('trackedItems' in changes && changes.trackedItems.newValue) {
+        const newItems = changes.trackedItems.newValue as TrackedItem[]
+
+        const filtered = format
+          ? newItems.filter((item) => item.format === format)
+          : newItems
+        const sorted = filtered.sort((a, b) => b.updatedAt - a.updatedAt)
+
+        setItems(sorted)
+        setError(null)
+        setLoading(false)
       }
     }
     chrome.storage.onChanged.addListener(listener)
     return () => chrome.storage.onChanged.removeListener(listener)
-  }, [refresh])
+  }, [format])
 
   return { items, loading, error, refresh }
 }
