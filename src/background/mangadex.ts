@@ -2,10 +2,12 @@ import type { MangaDexMedia } from '@/shared/types'
 import { SEARCH_RESULTS_PER_PAGE, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
 import { fetchWithRetry } from './retry'
 import { createLogger } from '@/shared/logger'
+import { TTLCache } from './cache'
 
 const log = createLogger('mangadex')
 
 const MANGADEX_API = 'https://api.mangadex.org'
+const searchCache = new TTLCache<MangaDexMedia[]>(5 * 60 * 1000) // 5 minutes
 
 interface MangaDexTitle {
   [lang: string]: string
@@ -80,6 +82,13 @@ function extractCoverUrl(mangaId: string, relationships: MangaDexRelationship[])
  * Search MangaDex for manga matching the given title string.
  */
 export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
+  const cacheKey = query.toLowerCase().trim()
+  const cached = searchCache.get(cacheKey)
+  if (cached) {
+    log.debug('Cache hit for:', cacheKey)
+    return cached
+  }
+
   log.debug('Searching for:', query)
 
   const url = new URL(`${MANGADEX_API}/manga`)
@@ -123,6 +132,7 @@ export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
 
   log.debug('Found', results.length, 'results')
 
+  searchCache.set(cacheKey, results)
   return results
 }
 

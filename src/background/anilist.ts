@@ -4,8 +4,10 @@ import type { MediaFormat } from '@/shared/utils'
 import { SEARCH_RESULTS_PER_PAGE, BATCH_FETCH_PAGE_SIZE } from '@/shared/constants'
 import { fetchWithRetry } from './retry'
 import { createLogger } from '@/shared/logger'
+import { TTLCache } from './cache'
 
 const log = createLogger('anilist')
+const searchCache = new TTLCache<AniListMedia[]>(5 * 60 * 1000) // 5 minutes
 
 // ---------------------------------------------------------------------------
 // GraphQL
@@ -84,6 +86,13 @@ interface AniListBatchResponse {
  */
 export async function searchAniList(query: string): Promise<AniListMedia[]> {
   const cleanedQuery = cleanSearchQuery(query) || query // fallback to original if filtering removes everything
+  const cacheKey = cleanedQuery.toLowerCase().trim()
+  const cached = searchCache.get(cacheKey)
+  if (cached) {
+    log.debug('Cache hit for:', cacheKey)
+    return cached
+  }
+
   log.debug('Searching for:', cleanedQuery, '(original:', query, ')')
 
   let response: Response
@@ -120,6 +129,7 @@ export async function searchAniList(query: string): Promise<AniListMedia[]> {
   const results = json.data?.Page.media ?? []
   log.debug('Found', results.length, 'results')
 
+  searchCache.set(cacheKey, results)
   return results
 }
 
