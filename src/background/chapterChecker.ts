@@ -5,7 +5,7 @@ import { fetchBatchChapterInfo } from './anilist'
 import { fetchBatchMangaDexInfo, searchMangaDex } from './mangadex'
 import { showNewChaptersNotification, showBatchNotification } from './notifications'
 import type { TrackedItem } from '@/shared/types'
-import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
+import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
 
 const log = createLogger('chapters')
@@ -118,14 +118,25 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   if (anilistNullChapterItems.length > 0) {
     log.debug('Fetching MangaDex fallback for', anilistNullChapterItems.length, 'items with null AniList chapters')
 
-    for (const item of anilistNullChapterItems) {
-      const chapters = await getMangaDexChaptersByTitle(item.titles.main)
-      mangadexFallback.set(item.providerId, chapters)
-      log.debug(`  - ${item.titles.main}: MangaDex fallback chapters=${chapters}`)
+    const BATCH_SIZE = 5
+    const BATCH_DELAY = 1100
 
-      // Small delay between searches
-      if (anilistNullChapterItems.length > 1) {
-        await new Promise((resolve) => setTimeout(resolve, MANGADEX_RATE_LIMIT_DELAY_MS))
+    for (let i = 0; i < anilistNullChapterItems.length; i += BATCH_SIZE) {
+      const batch = anilistNullChapterItems.slice(i, i + BATCH_SIZE)
+      const batchResults = await Promise.allSettled(
+        batch.map((item) => getMangaDexChaptersByTitle(item.titles.main))
+      )
+
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j]
+        if (result.status === 'fulfilled') {
+          mangadexFallback.set(batch[j].providerId, result.value)
+          log.debug(`  - ${batch[j].titles.main}: MangaDex fallback chapters=${result.value}`)
+        }
+      }
+
+      if (i + BATCH_SIZE < anilistNullChapterItems.length) {
+        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY))
       }
     }
   }

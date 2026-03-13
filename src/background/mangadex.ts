@@ -1,5 +1,5 @@
 import type { MangaDexMedia } from '@/shared/types'
-import { SEARCH_RESULTS_PER_PAGE, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
+import { SEARCH_RESULTS_PER_PAGE } from '@/shared/constants'
 import { fetchWithRetry } from './retry'
 import { createLogger } from '@/shared/logger'
 import { TTLCache } from './cache'
@@ -207,16 +207,26 @@ export async function fetchBatchMangaDexInfo(
 
   log.debug('Fetching chapter info for', mangaIds.length, 'items')
 
-  // Fetch sequentially with small delay to respect rate limits
-  for (const id of mangaIds) {
-    const info = await fetchSingleMangaInfo(id)
-    if (info) {
-      results.set(id, info)
+  const BATCH_SIZE = 5
+  const BATCH_DELAY = 1100 // just over 1 second for 5 requests (5 req/sec limit)
+
+  for (let i = 0; i < mangaIds.length; i += BATCH_SIZE) {
+    const batch = mangaIds.slice(i, i + BATCH_SIZE)
+
+    const batchResults = await Promise.allSettled(
+      batch.map((id) => fetchSingleMangaInfo(id))
+    )
+
+    for (let j = 0; j < batchResults.length; j++) {
+      const result = batchResults[j]
+      if (result.status === 'fulfilled' && result.value) {
+        results.set(batch[j], result.value)
+      }
     }
 
-    // Small delay between requests (MangaDex rate limit is 5 req/sec)
-    if (mangaIds.length > 1) {
-      await new Promise((resolve) => setTimeout(resolve, MANGADEX_RATE_LIMIT_DELAY_MS))
+    // Delay before next batch (skip delay after last batch)
+    if (i + BATCH_SIZE < mangaIds.length) {
+      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY))
     }
   }
 
