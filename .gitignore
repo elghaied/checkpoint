@@ -33,6 +33,9 @@ npm-debug.log*
 # Testing
 coverage/
 
-# Project Management 
+# Project Management
 /ProjectManagement/
 CLAUDE.md
+
+# Worktrees
+.worktrees/
