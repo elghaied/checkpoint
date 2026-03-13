@@ -2,8 +2,7 @@ import type { AniListMedia, MangaDexMedia, UnifiedSearchResult } from '@/shared/
 import { cleanSearchQuery, getFormat, getFormatFromLanguage } from '@/shared/utils'
 import { searchAniList, collectTitles, normalise, scorePair } from './anilist'
 import { searchMangaDex } from './mangadex'
-
-export const CONFIDENCE_THRESHOLD = 0.7
+import { CONFIDENCE_THRESHOLD, MAX_LOW_CONFIDENCE_RESULTS } from '@/shared/constants'
 
 /**
  * Calculate the best confidence score for a set of titles against an extracted title.
@@ -112,7 +111,7 @@ export async function searchWithFallback(
   // No AniList results passed threshold — return top 5 low-confidence results if available
   if (normalizedAnilist.length > 0) {
     console.log('[searchService] AniList had no valid matches, returning top low-confidence results')
-    return normalizedAnilist.sort((a, b) => b.confidence - a.confidence).slice(0, 5)
+    return normalizedAnilist.sort((a, b) => b.confidence - a.confidence).slice(0, MAX_LOW_CONFIDENCE_RESULTS)
   }
 
   // Fallback to MangaDex
@@ -136,7 +135,7 @@ export async function searchWithFallback(
   // No MangaDex results passed threshold — return top 5 low-confidence results
   if (normalizedMangadex.length > 0) {
     console.log('[searchService] MangaDex had no valid matches, returning top low-confidence results')
-    return normalizedMangadex.sort((a, b) => b.confidence - a.confidence).slice(0, 5)
+    return normalizedMangadex.sort((a, b) => b.confidence - a.confidence).slice(0, MAX_LOW_CONFIDENCE_RESULTS)
   }
 
   return []

@@ -5,6 +5,7 @@ import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
 import type { MessageRequest, ExportedData } from '@/shared/types'
+import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS } from '@/shared/constants'
 
 console.log('Checkpoint service worker started')
 
@@ -16,7 +17,7 @@ setupChapterCheckAlarm()
 
 // Listen for alarm events
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'checkpoint-chapter-check') {
+  if (alarm.name === CHAPTER_CHECK_ALARM_NAME) {
     handleChapterCheckAlarm()
   }
 })
@@ -66,13 +67,12 @@ async function handleMessage(
       }
 
       // Retry sending message — content script listener may not be ready immediately after injection
-      const maxRetries = 3
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
+      for (let attempt = 0; attempt < CONTENT_SCRIPT_MAX_RETRIES; attempt++) {
         try {
           return await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_METADATA' })
         } catch (err) {
-          if (attempt < maxRetries - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 150))
+          if (attempt < CONTENT_SCRIPT_MAX_RETRIES - 1) {
+            await new Promise((resolve) => setTimeout(resolve, CONTENT_SCRIPT_RETRY_DELAY_MS))
           } else {
             throw err
           }

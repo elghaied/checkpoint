@@ -5,8 +5,7 @@ import { fetchBatchChapterInfo } from './anilist'
 import { fetchBatchMangaDexInfo, searchMangaDex } from './mangadex'
 import { showNewChaptersNotification, showBatchNotification } from './notifications'
 import type { TrackedItem } from '@/shared/types'
-
-const ALARM_NAME = 'checkpoint-chapter-check'
+import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
 
 /**
  * Search MangaDex by title to get chapter info as fallback.
@@ -36,11 +35,11 @@ export async function setupChapterCheckAlarm(): Promise<void> {
   const settings = await storageService.getSettings()
 
   // Clear any existing alarm
-  await chrome.alarms.clear(ALARM_NAME)
+  await chrome.alarms.clear(CHAPTER_CHECK_ALARM_NAME)
 
   // Create new alarm with the configured interval
-  chrome.alarms.create(ALARM_NAME, {
-    delayInMinutes: 1, // First check 1 minute after extension loads
+  chrome.alarms.create(CHAPTER_CHECK_ALARM_NAME, {
+    delayInMinutes: CHAPTER_CHECK_INITIAL_DELAY_MIN,
     periodInMinutes: settings.checkIntervalMinutes,
   })
 
@@ -123,7 +122,7 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 
       // Small delay between searches
       if (anilistNullChapterItems.length > 1) {
-        await new Promise((resolve) => setTimeout(resolve, 250))
+        await new Promise((resolve) => setTimeout(resolve, MANGADEX_RATE_LIMIT_DELAY_MS))
       }
     }
   }

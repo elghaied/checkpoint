@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { TrackedItem, AniListMedia, PageMetadata, UnifiedSearchResult } from '@/shared/types'
 import { extractMetadata, searchManga, saveItem, findByTitle } from '../services/messaging'
+import { TOAST_DURATION_MS } from '@/shared/constants'
 
 interface AddItemState {
   status: 'idle' | 'extracting' | 'searching' | 'selecting' | 'saving' | 'success' | 'error'
@@ -52,7 +53,7 @@ export function useAddItem(onSuccess: () => void) {
 
         setTimeout(() => {
           setState({ status: 'idle', metadata: null, searchResults: null, error: null, originalExtractedTitle: null })
-        }, 2000)
+        }, TOAST_DURATION_MS)
         return
       }
 
@@ -138,7 +139,7 @@ export function useAddItem(onSuccess: () => void) {
       // Reset after delay
       setTimeout(() => {
         setState({ status: 'idle', metadata: null, searchResults: null, error: null, originalExtractedTitle: null })
-      }, 2000)
+      }, TOAST_DURATION_MS)
     } catch (err) {
       setState((prev) => ({
         ...prev,

@@ -1,6 +1,7 @@
 import { AniListMedia } from '@/shared/types'
 import { cleanSearchQuery, getFormat } from '@/shared/utils'
 import type { MediaFormat } from '@/shared/utils'
+import { SEARCH_RESULTS_PER_PAGE, BATCH_FETCH_PAGE_SIZE } from '@/shared/constants'
 
 // ---------------------------------------------------------------------------
 // GraphQL
@@ -8,7 +9,7 @@ import type { MediaFormat } from '@/shared/utils'
 
 const SEARCH_MANGA_QUERY = `
   query SearchManga($query: String!) {
-    Page(perPage: 10) {
+    Page(perPage: ${SEARCH_RESULTS_PER_PAGE}) {
       media(search: $query, type: MANGA, sort: SEARCH_MATCH) {
         id
         type
@@ -33,7 +34,7 @@ const SEARCH_MANGA_QUERY = `
 
 const BATCH_MANGA_QUERY = `
   query BatchManga($ids: [Int]) {
-    Page(perPage: 50) {
+    Page(perPage: ${BATCH_FETCH_PAGE_SIZE}) {
       media(id_in: $ids, type: MANGA) {
         id
         status

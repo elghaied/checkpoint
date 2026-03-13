@@ -1,4 +1,5 @@
 import type { MangaDexMedia } from '@/shared/types'
+import { SEARCH_RESULTS_PER_PAGE, MANGADEX_RATE_LIMIT_DELAY_MS } from '@/shared/constants'
 
 const MANGADEX_API = 'https://api.mangadex.org'
 
@@ -79,7 +80,7 @@ export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
 
   const url = new URL(`${MANGADEX_API}/manga`)
   url.searchParams.set('title', query)
-  url.searchParams.set('limit', '10')
+  url.searchParams.set('limit', String(SEARCH_RESULTS_PER_PAGE))
   url.searchParams.append('includes[]', 'cover_art')
 
   let response: Response
@@ -201,7 +202,7 @@ export async function fetchBatchMangaDexInfo(
 
     // Small delay between requests (MangaDex rate limit is 5 req/sec)
     if (mangaIds.length > 1) {
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      await new Promise((resolve) => setTimeout(resolve, MANGADEX_RATE_LIMIT_DELAY_MS))
     }
   }
 
