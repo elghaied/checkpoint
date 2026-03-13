@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { UnifiedSearchResult } from '@/shared/types'
+import { cleanSearchQuery } from '@/shared/utils'
 import './SearchModal.css'
 
 interface SearchModalProps {
@@ -29,7 +30,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
   }
 
   const handleGoogleSearch = () => {
-    const query = encodeURIComponent(`${originalTitle || searchQuery} manga alternative names`)
+    const title = cleanSearchQuery(originalTitle || searchQuery) || originalTitle || searchQuery
+    const query = encodeURIComponent(`${title} manga alternative names`)
     window.open(`https://www.google.com/search?q=${query}`, '_blank')
   }
 
