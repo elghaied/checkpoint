@@ -93,9 +93,12 @@ export async function searchWithFallback(
   const searchQuery = cleanSearchQuery(extractedTitle || query) || cleanSearchQuery(query) || query
   log.info('Searching with fallback for:', searchQuery, '(original:', query, ', extracted:', extractedTitle, ')')
 
+  // Clean the extracted title for confidence scoring (remove noise words)
+  const cleanedExtractedTitle = cleanSearchQuery(extractedTitle) || extractedTitle
+
   // Try AniList first
   const anilistResults = await searchAniList(searchQuery)
-  const normalizedAnilist = normalizeAniListResults(anilistResults, extractedTitle)
+  const normalizedAnilist = normalizeAniListResults(anilistResults, cleanedExtractedTitle)
   const validAnilist = normalizedAnilist.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
   log.debug(
@@ -120,7 +123,7 @@ export async function searchWithFallback(
   // Fallback to MangaDex
   log.info('AniList had no results, trying MangaDex')
   const mangadexResults = await searchMangaDex(searchQuery)
-  const normalizedMangadex = normalizeMangaDexResults(mangadexResults, extractedTitle)
+  const normalizedMangadex = normalizeMangaDexResults(mangadexResults, cleanedExtractedTitle)
   const validMangadex = normalizedMangadex.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
   log.debug(

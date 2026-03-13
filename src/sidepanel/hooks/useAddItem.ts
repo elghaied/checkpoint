@@ -76,8 +76,7 @@ export function useAddItem(onSuccess: () => void) {
       }
 
       // Search with fallback (AniList → MangaDex)
-      // query = cleaned title for API search, rawTitle for confidence scoring
-      const results = await withTimeout(searchManga(metadata.rawTitle, query), 15000)
+      const results = await withTimeout(searchManga(query, query), 15000)
 
       if (results.length === 0) {
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: [] }))
