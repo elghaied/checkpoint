@@ -3,6 +3,23 @@ import type { TrackedItem, AniListMedia, PageMetadata, UnifiedSearchResult } fro
 import { extractMetadata, searchManga, saveItem, findByTitle } from '../services/messaging'
 import { TOAST_DURATION_MS } from '@/shared/constants'
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    ),
+  ])
+}
+
+function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (msg.includes('Could not establish connection')) return 'Extension needs to be reloaded'
+  if (msg.includes('No active tab')) return 'Navigate to a manga page first'
+  if (msg.includes('timed out')) return 'Request timed out — check your connection'
+  return msg
+}
+
 interface AddItemState {
   status: 'idle' | 'extracting' | 'searching' | 'selecting' | 'saving' | 'success' | 'error'
   metadata: PageMetadata | null
@@ -25,7 +42,7 @@ export function useAddItem(onSuccess: () => void) {
 
     try {
       // Extract metadata from current page
-      const metadata = await extractMetadata()
+      const metadata = await withTimeout(extractMetadata(), 10000)
       setState((prev) => ({ ...prev, status: 'searching', metadata }))
 
       // Check local storage first
@@ -59,7 +76,7 @@ export function useAddItem(onSuccess: () => void) {
 
       // Search with fallback (AniList → MangaDex)
       // query = cleaned title for API search, rawTitle for confidence scoring
-      const results = await searchManga(metadata.rawTitle, query)
+      const results = await withTimeout(searchManga(metadata.rawTitle, query), 15000)
 
       if (results.length === 0) {
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: [] }))
@@ -77,7 +94,7 @@ export function useAddItem(onSuccess: () => void) {
       setState((prev) => ({
         ...prev,
         status: 'error',
-        error: err instanceof Error ? err.message : 'Failed to add item',
+        error: friendlyError(err),
       }))
     }
   }
@@ -144,7 +161,7 @@ export function useAddItem(onSuccess: () => void) {
       setState((prev) => ({
         ...prev,
         status: 'error',
-        error: err instanceof Error ? err.message : 'Failed to save item',
+        error: friendlyError(err),
       }))
     }
   }
@@ -161,7 +178,7 @@ export function useAddItem(onSuccess: () => void) {
       setState((prev) => ({
         ...prev,
         status: 'error',
-        error: err instanceof Error ? err.message : 'Search failed',
+        error: friendlyError(err),
       }))
     }
   }

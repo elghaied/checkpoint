@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { TrackedItem } from '@/shared/types'
 import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
@@ -11,7 +11,7 @@ import EditModal from './components/EditModal'
 import SettingsPage from './components/SettingsPage'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
-import { deleteItem } from './services/messaging'
+import { deleteItem, ping } from './services/messaging'
 
 type View = 'list' | 'settings'
 
@@ -19,9 +19,16 @@ export default function App() {
   const [view, setView] = useState<View>('list')
   const [activeTab, setActiveTab] = useState<TabValue>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
-  const { items, loading, refresh } = useTrackedItems(activeTab === 'ALL' ? undefined : activeTab)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+  const { items, loading, error, refresh } = useTrackedItems(activeTab === 'ALL' ? undefined : activeTab)
   const addItem = useAddItem(refresh)
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
+
+  useEffect(() => {
+    ping().catch(() => {
+      setConnectionError('Extension service worker is not responding. Try reloading the extension.')
+    })
+  }, [])
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items
@@ -88,12 +95,17 @@ export default function App() {
     <ErrorBoundary>
     <div className="app">
       <Header onSettingsClick={() => setView('settings')} />
+      {connectionError && (
+        <div className="connection-banner">{connectionError}</div>
+      )}
       <main className="main">
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
         <ItemList
           items={filteredItems}
           loading={loading}
+          error={error}
+          onRetry={refresh}
           onEdit={handleEdit}
           onOpen={handleOpen}
           onRefresh={refresh}

@@ -5,12 +5,24 @@ import EmptyState from './EmptyState'
 interface ItemListProps {
   items: TrackedItem[]
   loading: boolean
+  error?: string | null
+  onRetry?: () => void
   onEdit: (item: TrackedItem) => void
   onOpen: (item: TrackedItem) => void
   onRefresh: () => void
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, loading, onEdit, onOpen, onRefresh }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh }) => {
+  if (error) {
+    return (
+      <div className="error-state">
+        <p>Failed to load items</p>
+        <p className="error-state__detail">{error}</p>
+        {onRetry && <button className="btn btn--primary" onClick={onRetry}>Try Again</button>}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="item-list item-list--loading">
