@@ -9,7 +9,7 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, count }) => {
   return (
     <header className="header">
       <div className="header__brand">
-        <div className="header__logo">C</div>
+        <img className="header__logo" src="/icons/icon32.png" alt="Checkpoint" />
         <h1>Checkpoint</h1>
         <span className="header__badge">{count} tracked</span>
       </div>
