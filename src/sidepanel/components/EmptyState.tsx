@@ -1,3 +1,5 @@
+import './EmptyState.css'
+
 interface EmptyStateProps {
   message?: string
 }

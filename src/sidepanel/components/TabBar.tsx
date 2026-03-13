@@ -1,4 +1,5 @@
 import { TrackedItem } from '@/shared/types'
+import './TabBar.css'
 
 type Format = TrackedItem['format']
 type TabValue = Format | 'ALL'

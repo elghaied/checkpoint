@@ -1,3 +1,5 @@
+import './Header.css'
+
 interface HeaderProps {
   onSettingsClick: () => void
 }

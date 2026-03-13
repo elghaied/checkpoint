@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { UnifiedSearchResult } from '@/shared/types'
+import './SearchModal.css'
 
 interface SearchModalProps {
   results: UnifiedSearchResult[]

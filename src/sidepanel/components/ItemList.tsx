@@ -1,6 +1,7 @@
 import type { TrackedItem } from '@/shared/types'
 import ItemCard from './ItemCard'
 import EmptyState from './EmptyState'
+import './ItemList.css'
 
 interface ItemListProps {
   items: TrackedItem[]

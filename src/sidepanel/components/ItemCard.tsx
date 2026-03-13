@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TrackedItem } from '@/shared/types'
 import { toggleItemNotifications } from '../services/messaging'
 import { createLogger } from '@/shared/logger'
+import './ItemCard.css'
 
 const log = createLogger('app')
 

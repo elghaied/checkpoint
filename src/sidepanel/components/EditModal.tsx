@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TrackedItem } from '@/shared/types'
+import './EditModal.css'
 
 interface EditModalProps {
   item: TrackedItem

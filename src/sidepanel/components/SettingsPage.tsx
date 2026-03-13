@@ -3,6 +3,7 @@ import { useSettings } from '../hooks/useSettings'
 import { exportData, importData, checkForUpdates } from '../services/messaging'
 import type { ExportedData } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
+import './SettingsPage.css'
 
 const log = createLogger('app')
 

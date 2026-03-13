@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import type { ReactNode, ErrorInfo } from 'react'
 import { createLogger } from '@/shared/logger'
+import './ErrorBoundary.css'
 
 const log = createLogger('app')
 

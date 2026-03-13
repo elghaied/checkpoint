@@ -1,0 +1,129 @@
+.item-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.item-card__cover {
+  width: 64px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.item-card__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.item-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-card__bell {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.item-card__bell:hover {
+  color: var(--text-primary);
+}
+
+.item-card__bell--active {
+  color: var(--accent);
+}
+
+.item-card__bell--active:hover {
+  color: var(--accent-hover);
+}
+
+.item-card__bell--loading {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.item-card__progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-card__ahead {
+  font-size: 11px;
+  font-weight: 600;
+  color: #27ae60;
+  background-color: rgba(39, 174, 96, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.item-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.item-card__progress {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.item-card__updated {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.item-card__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.item-card__btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.item-card__btn--edit {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.item-card__btn--edit:hover {
+  background-color: var(--border);
+}
+
+.item-card__btn--open {
+  background-color: var(--accent);
+  color: #fff;
+}
+
+.item-card__btn--open:hover {
+  background-color: var(--accent-hover);
+}
