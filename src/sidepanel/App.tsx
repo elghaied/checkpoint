@@ -26,6 +26,10 @@ export default function App() {
   const { items, loading, error, refresh } = useTrackedItems(activeTab === 'ALL' ? undefined : activeTab)
   const addItem = useAddItem(refresh)
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{
+    item: TrackedItem
+    timeoutId: number
+  } | null>(null)
 
   useEffect(() => {
     ping().catch(() => {
@@ -41,6 +45,11 @@ export default function App() {
       return allTitles.some((t) => t.toLowerCase().includes(q))
     })
   }, [items, searchQuery])
+
+  const displayItems = useMemo(() => {
+    if (!pendingDelete) return filteredItems
+    return filteredItems.filter((item) => item.providerId !== pendingDelete.item.providerId)
+  }, [filteredItems, pendingDelete])
 
   const handleEdit = (item: TrackedItem) => {
     setEditingItem(item)
@@ -66,13 +75,37 @@ export default function App() {
   const handleDelete = async () => {
     if (!editingItem) return
 
-    try {
-      await deleteItem(editingItem.providerId)
-      setEditingItem(null)
-      refresh()
-    } catch (err) {
-      log.error('Failed to delete:', err)
+    // Execute any pending delete first
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timeoutId)
+      try {
+        await deleteItem(pendingDelete.item.providerId)
+      } catch (err) {
+        log.error('Failed to delete:', err)
+      }
     }
+
+    const itemToDelete = editingItem
+    setEditingItem(null)
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        await deleteItem(itemToDelete.providerId)
+        setPendingDelete(null)
+        refresh()
+      } catch (err) {
+        log.error('Failed to delete:', err)
+        setPendingDelete(null)
+      }
+    }, 5000)
+
+    setPendingDelete({ item: itemToDelete, timeoutId })
+  }
+
+  const handleUndo = () => {
+    if (!pendingDelete) return
+    clearTimeout(pendingDelete.timeoutId)
+    setPendingDelete(null)
   }
 
   const handleOpen = (item: TrackedItem) => {
@@ -105,7 +138,7 @@ export default function App() {
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
         <ItemList
-          items={filteredItems}
+          items={displayItems}
           loading={loading}
           error={error}
           onRetry={refresh}
@@ -122,6 +155,12 @@ export default function App() {
         {addItem.status === 'success' && (
           <div className="toast toast--success">
             Added successfully!
+          </div>
+        )}
+        {pendingDelete && (
+          <div className="toast toast--undo">
+            <span>Deleted &ldquo;{pendingDelete.item.titles.main}&rdquo;</span>
+            <button onClick={handleUndo}>Undo</button>
           </div>
         )}
       </main>

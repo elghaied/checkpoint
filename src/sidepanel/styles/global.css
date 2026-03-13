@@ -159,6 +159,23 @@ body {
   color: #fff;
 }
 
+.toast--undo {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.toast--undo button {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 1;
+}
+
+.toast--undo button:hover {
+  text-decoration: underline;
+}
+
 .toast button {
   background: none;
   border: none;
