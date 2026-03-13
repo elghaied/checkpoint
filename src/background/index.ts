@@ -48,15 +48,25 @@ async function handleMessage(
   switch (message.type) {
     case 'EXTRACT_METADATA': {
       let tabId = message.tabId ?? sender.tab?.id
+      let tabUrl: string | undefined
 
       // If no tab ID, query for the active tab in the current window
       if (!tabId) {
         const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
         tabId = activeTab?.id
+        tabUrl = activeTab?.url
+      } else {
+        const tab = await chrome.tabs.get(tabId)
+        tabUrl = tab.url
       }
 
       if (!tabId) {
         throw new Error('No active tab found')
+      }
+
+      // Check if the tab is a restricted page where content scripts can't run
+      if (tabUrl && /^(chrome|about|chrome-extension|edge|brave|devtools):/.test(tabUrl)) {
+        throw new Error('Cannot extract metadata from this page — navigate to a manga reading site first')
       }
 
       // Ensure the content script is injected
@@ -65,8 +75,14 @@ async function handleMessage(
           target: { tabId },
           files: ['content/index.js'],
         })
-      } catch {
-        // Script may already be injected, continue
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        // "Cannot access" / "Cannot be scripted" = restricted page
+        // Other errors (e.g. already injected) are safe to ignore
+        if (msg.includes('Cannot access') || msg.includes('cannot be scripted')) {
+          throw new Error('Cannot extract metadata from this page — navigate to a manga reading site first')
+        }
+        log.debug('Script injection note:', msg)
       }
 
       // Retry sending message — content script listener may not be ready immediately after injection

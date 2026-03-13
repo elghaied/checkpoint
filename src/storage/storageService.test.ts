@@ -33,7 +33,8 @@ function makeItem(overrides: Partial<TrackedItem> = {}): TrackedItem {
 
 function makeExportedItem(item: TrackedItem): ExportedItem {
   // ExportedItem is TrackedItem minus lastApiCheck
-  const { lastApiCheck: _omit, ...rest } = item
+  const { lastApiCheck: __removed, ...rest } = item
+  void __removed
   return rest
 }
 

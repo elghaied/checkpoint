@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import { copyFileSync, mkdirSync, existsSync, rmSync } from 'fs'
+import { build as esbuild } from 'esbuild'
 
 // Plugin to copy sidepanel HTML to correct location and clean up
 function copySidepanelHtml() {
@@ -26,6 +27,32 @@ function copySidepanelHtml() {
   }
 }
 
+// Build content script as a self-contained IIFE via esbuild.
+// chrome.scripting.executeScript injects files as classic scripts (not ES modules),
+// so the content script cannot use import statements.
+function bundleContentScript() {
+  return {
+    name: 'bundle-content-script',
+    async closeBundle() {
+      await esbuild({
+        entryPoints: [resolve(__dirname, 'src/content/index.ts')],
+        bundle: true,
+        outfile: resolve(__dirname, 'dist/content/index.js'),
+        format: 'iife',
+        target: 'es2020',
+        minify: true,
+        alias: {
+          '@': resolve(__dirname, 'src'),
+        },
+        define: {
+          'import.meta.env.DEV': 'false',
+        },
+      })
+      console.log('Bundled content script as self-contained IIFE')
+    }
+  }
+}
+
 export default defineConfig({
   test: {
     globals: true,
@@ -37,7 +64,7 @@ export default defineConfig({
       include: ['src/shared/**', 'src/background/**', 'src/storage/**'],
     },
   },
-  plugins: [react(), copySidepanelHtml()],
+  plugins: [react(), copySidepanelHtml(), bundleContentScript()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -50,12 +77,10 @@ export default defineConfig({
       input: {
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
         background: resolve(__dirname, 'src/background/index.ts'),
-        content: resolve(__dirname, 'src/content/index.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'background') return 'background/index.js'
-          if (chunkInfo.name === 'content') return 'content/index.js'
           return 'sidepanel/[name]-[hash].js'
         },
         chunkFileNames: 'chunks/[name]-[hash].js',

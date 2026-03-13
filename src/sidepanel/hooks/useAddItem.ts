@@ -14,7 +14,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
-  if (msg.includes('Could not establish connection')) return 'Extension needs to be reloaded'
+  if (msg.includes('Cannot extract metadata')) return msg
+  if (msg.includes('Could not establish connection')) return 'Navigate to a manga reading site and try again'
   if (msg.includes('No active tab')) return 'Navigate to a manga page first'
   if (msg.includes('timed out')) return 'Request timed out — check your connection'
   return msg
