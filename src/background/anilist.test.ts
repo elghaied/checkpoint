@@ -90,6 +90,11 @@ describe('scorePair', () => {
     expect(scorePair('solo leveling', 'sololevelingextra')).toBe(0.8)
   })
 
+  it('returns 0.7 for spaceless substring match (not prefix)', () => {
+    // Neither contains the other with spaces, but stripping spaces makes one a substring
+    expect(scorePair('the sololeveling tale', 'solo leveling')).toBe(0.7)
+  })
+
   it('returns 0 for no relationship', () => {
     expect(scorePair('attack on titan', 'demon slayer')).toBe(0)
   })

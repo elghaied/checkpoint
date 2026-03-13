@@ -120,6 +120,11 @@ describe('getFormatFromLanguage', () => {
     expect(getFormatFromLanguage('en')).toBe('MANGA')
     expect(getFormatFromLanguage('fr')).toBe('MANGA')
     expect(getFormatFromLanguage('')).toBe('MANGA')
+  })
+
+  it('returns MANGA for zh-tw (asymmetry: getFormat("TW") returns MANHUA)', () => {
+    // Note: getFormat('TW') -> MANHUA, but getFormatFromLanguage('zh-tw') -> MANGA
+    // because 'zh-tw' has no explicit case. MangaDex may not use this code in practice.
     expect(getFormatFromLanguage('zh-tw')).toBe('MANGA')
   })
 })
