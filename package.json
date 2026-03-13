@@ -8,7 +8,9 @@
     "dev": "vite build --watch",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "chrome-extension",
@@ -30,10 +32,12 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.3",
+    "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.55.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.0"
   }
 }

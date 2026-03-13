@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
@@ -26,6 +27,16 @@ function copySidepanelHtml() {
 }
 
 export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    setupFiles: ['./src/__mocks__/chrome.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/shared/**', 'src/background/**', 'src/storage/**'],
+    },
+  },
   plugins: [react(), copySidepanelHtml()],
   resolve: {
     alias: {
