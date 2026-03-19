@@ -67,7 +67,7 @@ export function useFilterPanel(items: TrackedItem[], activeTab: string) {
   const getSmartListFilters = useCallback(() => effectiveFilters, [effectiveFilters])
 
   return {
-    filters, isOpen, setIsOpen, filteredItems, activeFilterCount,
+    filters, setFilters, isOpen, setIsOpen, filteredItems, activeFilterCount,
     availableGenres, availableTags, toggleGenre, toggleTag, clearFilters, getSmartListFilters,
   }
 }

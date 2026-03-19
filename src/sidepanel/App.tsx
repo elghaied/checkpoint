@@ -229,7 +229,18 @@ export default function App() {
               allItems={items}
               onBack={handleListBack}
               onAddItems={handleAddItemsToList}
-              onEditFilters={() => { /* placeholder for Task 12 */ }}
+              onEditFilters={() => {
+                if (selectedList?.filters) {
+                  filterPanel.setFilters({
+                    formats: selectedList.filters.formats,
+                    genres: selectedList.filters.genres,
+                    tags: selectedList.filters.tags,
+                  })
+                  filterPanel.setIsOpen(true)
+                  setView('list')
+                  setSelectedList(null)
+                }
+              }}
               onRemoveItem={handleRemoveItemFromList}
               onItemEdit={handleEdit}
             />

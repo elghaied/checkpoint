@@ -192,13 +192,15 @@ export class StorageService {
 
       // Clean up from all manual lists
       const lists = await readLists()
+      let listsChanged = false
       const updatedLists = lists.map((list) => {
         if (list.type !== 'manual') return list
         const idx = list.itemIds.indexOf(providerId)
         if (idx === -1) return list
+        listsChanged = true
         return { ...list, itemIds: list.itemIds.filter((id) => id !== providerId) }
       })
-      await writeLists(updatedLists)
+      if (listsChanged) await writeLists(updatedLists)
     })
   }
 
