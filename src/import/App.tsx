@@ -105,6 +105,7 @@ export function App() {
               onComplete={setImportResult}
               onSavePendingReview={savePendingReview}
               onClearSession={clearSession}
+              onBackToReview={() => saveSession({ ...session, phase: 'review' })}
             />
           </div>
         )

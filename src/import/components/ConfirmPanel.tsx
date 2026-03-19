@@ -10,6 +10,7 @@ export interface ConfirmPanelProps {
   onComplete: (result: { added: number; updated: number; skipped: number }) => void
   onSavePendingReview: (list: PendingReviewList) => Promise<void>
   onClearSession: () => Promise<void>
+  onBackToReview: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +153,7 @@ function countByTier(rows: ImportRow[], tier: MatchTier): number {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ConfirmPanel({ session, onComplete, onSavePendingReview, onClearSession }: ConfirmPanelProps) {
+export function ConfirmPanel({ session, onComplete, onSavePendingReview, onClearSession, onBackToReview }: ConfirmPanelProps) {
   const { rows } = session
 
   // Tier checkbox state — green checked by default, others unchecked
@@ -384,10 +385,20 @@ export function ConfirmPanel({ session, onComplete, onSavePendingReview, onClear
 
   return (
     <div style={containerStyle}>
+      <button
+        onClick={onBackToReview}
+        style={{
+          background: 'none', border: 'none', color: '#60a5fa',
+          fontSize: '13px', cursor: 'pointer', padding: '0 0 12px',
+          display: 'flex', alignItems: 'center', gap: '4px',
+        }}
+      >
+        ← Back to Review
+      </button>
       <div style={headerStyle}>
         <h2 style={pageTitleStyle}>Confirm Import</h2>
         <p style={{ margin: '0', fontSize: '13px', color: '#888' }}>
-          Select which tiers to import, then click "Import Selected".
+          Select which tiers to import, then click &quot;Import Selected&quot;.
         </p>
       </div>
 
