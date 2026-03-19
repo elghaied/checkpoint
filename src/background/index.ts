@@ -6,10 +6,13 @@ import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
 import { runGenreBackfill } from './genreBackfill'
 import type { MessageRequest, ExportedData } from '@/shared/types'
-import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS } from '@/shared/constants'
+import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
+import { RateLimiter } from './rateLimiter'
+import { setImportActive } from './state'
 
 const log = createLogger('background')
+const importRateLimiter = new RateLimiter(IMPORT_RATE_LIMIT_PER_MINUTE)
 
 log.info('Checkpoint service worker started')
 
@@ -276,6 +279,21 @@ async function handleMessage(
     case 'DELETE_LIST': {
       await storageService.deleteList(message.listId)
       return null
+    }
+
+    // CSV Import handlers
+    case 'IMPORT_SEARCH': {
+      const result = importRateLimiter.tryAcquire()
+      if (!result.allowed) {
+        return { rateLimited: true, waitMs: result.waitMs }
+      }
+      return await searchWithFallback(message.query, message.extractedTitle)
+    }
+
+    case 'IMPORT_STATUS': {
+      setImportActive(message.active)
+      log.info('Import status:', message.active ? 'active' : 'inactive')
+      return undefined
     }
 
     default:

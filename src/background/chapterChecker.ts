@@ -7,6 +7,7 @@ import { showNewChaptersNotification, showBatchNotification } from './notificati
 import type { TrackedItem } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
+import { importActive } from './state'
 
 const log = createLogger('chapters')
 
@@ -57,6 +58,10 @@ export async function setupChapterCheckAlarm(): Promise<void> {
  * Handle the alarm event - check for chapter updates.
  */
 export async function handleChapterCheckAlarm(): Promise<void> {
+  if (importActive) {
+    log.info('Skipping chapter check — CSV import is active')
+    return
+  }
   log.info('Running chapter check...')
 
   const settings = await storageService.getSettings()
