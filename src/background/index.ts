@@ -132,6 +132,10 @@ async function handleMessage(
 
     case 'GET_ALL_ITEMS': {
       const items = await storageService.getAll(message.format)
+      // Trigger backfill if any items need it (non-blocking)
+      if (items.some((i) => !i.genresBackfilled)) {
+        runGenreBackfill().catch((err) => log.error('Genre backfill failed:', err))
+      }
       return items
     }
 
@@ -234,7 +238,10 @@ async function handleMessage(
     }
 
     case 'IMPORT_DATA': {
-      return storageService.importData(message.data as ExportedData)
+      const result = await storageService.importData(message.data as ExportedData)
+      // Trigger backfill for imported items that may lack genres
+      runGenreBackfill().catch((err) => log.error('Genre backfill after import failed:', err))
+      return result
     }
 
     // Tag handlers

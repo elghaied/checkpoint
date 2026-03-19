@@ -3,6 +3,7 @@ import type { TrackedItem } from '@/shared/types'
 import { useCustomTags } from '../hooks/useCustomTags'
 import { useCustomLists } from '../hooks/useCustomLists'
 import TagInput from './TagInput'
+import { GenreBadges } from './GenreBadges'
 import './EditModal.css'
 
 interface EditModalProps {
@@ -181,6 +182,13 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
                 </button>
               </div>
             </div>
+
+            {item.genres && item.genres.length > 0 && (
+              <div className="edit-form__field">
+                <label className="edit-form__label">Genres</label>
+                <GenreBadges genres={item.genres} maxVisible={10} />
+              </div>
+            )}
 
             <div className="edit-form__field">
               <label className="edit-form__label">Tags</label>
