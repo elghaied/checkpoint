@@ -14,6 +14,7 @@ import ListDetail from './components/ListDetail'
 import ListItemPicker from './components/ListItemPicker'
 import { FilterPanel } from './components/FilterPanel'
 import { BackfillIndicator } from './components/BackfillIndicator'
+import { ImportBanner } from './components/ImportBanner'
 import NavRail from './components/NavRail'
 import type { NavView } from './components/NavRail'
 import TagsView from './components/TagsView'
@@ -23,6 +24,7 @@ import { useCustomLists } from './hooks/useCustomLists'
 import { useCustomTags } from './hooks/useCustomTags'
 import { useFilterPanel } from './hooks/useFilterPanel'
 import { useBackfillProgress } from './hooks/useBackfillProgress'
+import { usePendingReview } from './hooks/usePendingReview'
 import { deleteItem, updateItem, ping } from './services/messaging'
 import { createLogger } from '@/shared/logger'
 import type { FilterState } from './hooks/useFilterPanel'
@@ -39,6 +41,7 @@ export default function App() {
   const { tags: tagRegistry } = useCustomTags()
   const filterPanel = useFilterPanel(items, activeTab)
   const backfillProgress = useBackfillProgress()
+  const { pendingCount, importInProgress, openImportTab, dismissPending } = usePendingReview()
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{
     item: TrackedItem
@@ -286,6 +289,12 @@ export default function App() {
         {backfillProgress && (
           <BackfillIndicator progress={backfillProgress} />
         )}
+        <ImportBanner
+          importInProgress={importInProgress}
+          pendingCount={pendingCount}
+          onResume={openImportTab}
+          onDismiss={dismissPending}
+        />
         <main className="main">
           <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
           <div className="search-filter-row">

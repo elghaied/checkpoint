@@ -197,6 +197,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
             <button className="btn btn--secondary" onClick={handleImportClick}>
               Import backup
             </button>
+            <button
+              className="btn btn--secondary"
+              onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('import/index.html') })}
+            >
+              Import from CSV
+            </button>
             <input
               ref={fileInputRef}
               type="file"
