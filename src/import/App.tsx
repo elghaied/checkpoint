@@ -1,10 +1,11 @@
 import { useImportSession } from './hooks/useImportSession'
 import styles from './styles/import.module.css'
+import { FileUpload } from './components/FileUpload'
 
 export function App() {
   const {
     session, pendingReview, loading,
-    saveSession: _saveSession, clearSession: _clearSession,
+    saveSession, clearSession,
     savePendingReview: _savePendingReview, clearPendingReview: _clearPendingReview,
   } = useImportSession()
 
@@ -17,7 +18,15 @@ export function App() {
     switch (session.phase) {
       case 'parsed':
       case 'matching':
-        return <div className={styles.container}>Match phase (TODO)</div>
+        return (
+          <div className={styles.container}>
+            <FileUpload
+              existingSession={session}
+              onSessionCreated={(s) => saveSession(s)}
+              onDiscardSession={() => clearSession()}
+            />
+          </div>
+        )
       case 'review':
         return <div className={styles.container}>Review phase (TODO)</div>
       case 'confirmed':
@@ -34,6 +43,14 @@ export function App() {
     )
   }
 
-  // No session — show file upload placeholder
-  return <div className={styles.container}>FileUpload (TODO)</div>
+  // No session — show file upload
+  return (
+    <div className={styles.container}>
+      <FileUpload
+        existingSession={null}
+        onSessionCreated={(s) => saveSession(s)}
+        onDiscardSession={() => clearSession()}
+      />
+    </div>
+  )
 }
