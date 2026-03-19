@@ -84,6 +84,70 @@ body {
   padding: 16px;
 }
 
+/* ---------- Search + Filter Row ---------- */
+
+.search-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.search-filter-row .filter-bar {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  position: relative;
+  font-size: 13px;
+  font-family: inherit;
+  height: 36px;
+}
+
+.filter-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.filter-toggle--active {
+  border-color: var(--progress);
+  color: var(--progress);
+  background: rgba(0, 212, 170, 0.06);
+}
+
+.filter-toggle--has-filters {
+  border-color: var(--progress);
+  color: var(--progress);
+}
+
+.filter-toggle__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--progress);
+  color: #0f0f1a;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* ---------- Keyframe Animations ---------- */
 
 @keyframes cardIn {

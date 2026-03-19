@@ -12,11 +12,15 @@ import SettingsPage from './components/SettingsPage'
 import ListsView from './components/ListsView'
 import ListDetail from './components/ListDetail'
 import ListItemPicker from './components/ListItemPicker'
+import { FilterPanel } from './components/FilterPanel'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { useCustomLists } from './hooks/useCustomLists'
+import { useCustomTags } from './hooks/useCustomTags'
+import { useFilterPanel } from './hooks/useFilterPanel'
 import { deleteItem, updateItem, ping } from './services/messaging'
 import { createLogger } from '@/shared/logger'
+import type { FilterState } from './hooks/useFilterPanel'
 
 const log = createLogger('app')
 
@@ -29,6 +33,8 @@ export default function App() {
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const { items, loading, error, refresh } = useTrackedItems()
   const addItem = useAddItem(refresh)
+  const { tags: tagRegistry } = useCustomTags()
+  const filterPanel = useFilterPanel(items, activeTab)
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{
     item: TrackedItem
@@ -53,15 +59,16 @@ export default function App() {
     MANHUA: items.filter((i) => i.format === 'MANHUA').length,
   }), [items])
 
+  // filterPanel.filteredItems already applies tab + genre + tag filters
   const filteredItems = useMemo(() => {
-    const tabFiltered = activeTab === 'ALL' ? items : items.filter((i) => i.format === activeTab)
-    if (!searchQuery.trim()) return tabFiltered
+    const panelFiltered = filterPanel.filteredItems
+    if (!searchQuery.trim()) return panelFiltered
     const q = searchQuery.toLowerCase().trim()
-    return tabFiltered.filter((item) => {
+    return panelFiltered.filter((item) => {
       const allTitles = [item.titles.main, ...item.titles.alt]
       return allTitles.some((t) => t.toLowerCase().includes(q))
     })
-  }, [items, activeTab, searchQuery])
+  }, [filterPanel.filteredItems, searchQuery])
 
   const displayItems = useMemo(() => {
     if (!pendingDelete) return filteredItems
@@ -175,6 +182,21 @@ export default function App() {
     setSelectedList((prev) => prev ? { ...prev, itemIds: newIds } : null)
   }
 
+  const handleSaveAsList = async (name: string, filters: FilterState) => {
+    await createList({
+      name,
+      type: 'smart',
+      itemIds: [],
+      filters: {
+        formats: filters.formats,
+        genres: filters.genres,
+        tags: filters.tags,
+      },
+    })
+    filterPanel.clearFilters()
+    filterPanel.setIsOpen(false)
+  }
+
   const isAddLoading = ['extracting', 'searching', 'saving'].includes(addItem.status)
 
   // Settings page view
@@ -263,7 +285,37 @@ export default function App() {
       )}
       <main className="main">
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <div className="search-filter-row">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          <button
+            className={`filter-toggle${filterPanel.isOpen ? ' filter-toggle--active' : ''}${filterPanel.activeFilterCount > 0 ? ' filter-toggle--has-filters' : ''}`}
+            onClick={() => filterPanel.setIsOpen((o) => !o)}
+            title="Toggle filters"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/>
+            </svg>
+            {filterPanel.activeFilterCount > 0 && (
+              <span className="filter-toggle__badge">{filterPanel.activeFilterCount}</span>
+            )}
+          </button>
+        </div>
+        <FilterPanel
+          isOpen={filterPanel.isOpen}
+          genres={filterPanel.availableGenres}
+          tags={filterPanel.availableTags}
+          tagRegistry={tagRegistry}
+          genreFilters={filterPanel.filters.genres}
+          tagFilters={filterPanel.filters.tags}
+          onToggleGenre={filterPanel.toggleGenre}
+          onToggleTag={filterPanel.toggleTag}
+          onClear={filterPanel.clearFilters}
+          onSaveAsList={handleSaveAsList}
+          activeFilterCount={filterPanel.activeFilterCount}
+          filteredCount={filteredItems.length}
+          totalCount={items.length}
+          currentFilters={filterPanel.getSmartListFilters()}
+        />
         <ItemList
           key={activeTab}
           items={displayItems}
