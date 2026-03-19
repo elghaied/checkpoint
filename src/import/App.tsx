@@ -14,7 +14,7 @@ export function App() {
   const {
     session, pendingReview, loading,
     saveSession, clearSession,
-    savePendingReview, clearPendingReview: _clearPendingReview,
+    savePendingReview,
   } = useImportSession()
 
   const matcher = useBatchMatcher(

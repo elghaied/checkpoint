@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseCSV, type ParseResult } from './csvParser'
+import { parseCSV } from './csvParser'
 
 describe('parseCSV', () => {
   it('parses basic CSV with title column', () => {

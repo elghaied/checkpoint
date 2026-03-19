@@ -323,7 +323,7 @@ export function SimilarModal({ row, onSelect, onSkip, onClose }: SimilarModalPro
       } else {
         setSearchResults(result as UnifiedSearchResult[])
       }
-    } catch (err) {
+    } catch {
       setSearchError('Search failed. Please try again.')
     } finally {
       setIsSearching(false)
