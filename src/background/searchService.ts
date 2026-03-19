@@ -44,6 +44,7 @@ function normalizeAniListResults(
       format: getFormat(media.countryOfOrigin),
       status: media.status,
       chapters: media.chapters,
+      genres: media.genres ?? [],
       confidence,
       originalData: media,
     }
@@ -75,6 +76,7 @@ function normalizeMangaDexResults(
       format: getFormatFromLanguage(manga.originalLanguage),
       status: manga.status,
       chapters: isNaN(chapters as number) ? null : chapters,
+      genres: manga.genres ?? [],
       confidence,
       originalData: manga,
     }

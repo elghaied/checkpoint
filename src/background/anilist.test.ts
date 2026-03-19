@@ -23,6 +23,7 @@ function makeMedia(
     countryOfOrigin: 'JP',
     status: 'RELEASING',
     chapters: null,
+    genres: [],
   }
 }
 

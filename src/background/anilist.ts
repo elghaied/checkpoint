@@ -33,6 +33,7 @@ const SEARCH_MANGA_QUERY = `
         countryOfOrigin
         status
         chapters
+        genres
       }
     }
   }
@@ -45,6 +46,7 @@ const BATCH_MANGA_QUERY = `
         id
         status
         chapters
+        genres
       }
     }
   }
@@ -69,6 +71,7 @@ interface BatchMediaResult {
   id: number
   status: string
   chapters: number | null
+  genres: string[]
 }
 
 interface AniListBatchResponse {
@@ -243,6 +246,7 @@ export interface BatchChapterResult {
   id: string
   status: string | null
   chapters: number | null
+  genres: string[]
 }
 
 /**
@@ -304,6 +308,7 @@ export async function fetchBatchChapterInfo(
       id: String(m.id),
       status: m.status,
       chapters: m.chapters,
+      genres: m.genres ?? [],
     })
   }
 

@@ -27,6 +27,12 @@ interface MangaDexMangaAttributes {
   originalLanguage: string
   status: string | null
   lastChapter: string | null
+  tags: Array<{
+    attributes: {
+      name: { en?: string }
+      group: string
+    }
+  }>
 }
 
 interface MangaDexMangaResult {
@@ -79,6 +85,17 @@ function extractCoverUrl(mangaId: string, relationships: MangaDexRelationship[])
 }
 
 /**
+ * Extract genre strings from MangaDex tag objects.
+ * Includes tags with group 'genre' or 'theme'.
+ */
+export function extractGenres(tags: MangaDexMangaAttributes['tags']): string[] {
+  return tags
+    .filter((tag) => tag.attributes.group === 'genre' || tag.attributes.group === 'theme')
+    .map((tag) => tag.attributes.name.en)
+    .filter((name): name is string => !!name)
+}
+
+/**
  * Search MangaDex for manga matching the given title string.
  */
 export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
@@ -128,6 +145,7 @@ export async function searchMangaDex(query: string): Promise<MangaDexMedia[]> {
     originalLanguage: manga.attributes.originalLanguage,
     status: manga.attributes.status,
     lastChapter: manga.attributes.lastChapter,
+    genres: extractGenres(manga.attributes.tags ?? []),
   }))
 
   log.debug('Found', results.length, 'results')

@@ -45,6 +45,7 @@ function makeAniListMedia(
     countryOfOrigin,
     status: 'RELEASING',
     chapters: null,
+    genres: [],
   }
 }
 
@@ -62,6 +63,7 @@ function makeMangaDexMedia(
     originalLanguage,
     status: 'ongoing',
     lastChapter: null,
+    genres: [],
   }
 }
 
@@ -395,6 +397,16 @@ describe('searchWithFallback', () => {
       const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
 
       expect(results[0].chapters).toBe(179)
+    })
+
+    it('includes genres in unified results', async () => {
+      const media = makeAniListMedia(1, 'Solo Leveling', 'Solo Leveling', '나 혼자만 레벨업')
+      media.genres = ['Action', 'Fantasy', 'Adventure']
+      mockSearchAniList.mockResolvedValue([media])
+
+      const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
+
+      expect(results[0].genres).toEqual(['Action', 'Fantasy', 'Adventure'])
     })
   })
 
