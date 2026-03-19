@@ -237,6 +237,40 @@ async function handleMessage(
       return storageService.importData(message.data as ExportedData)
     }
 
+    // Tag handlers
+    case 'GET_CUSTOM_TAGS': {
+      return storageService.getCustomTags()
+    }
+
+    case 'UPDATE_CUSTOM_TAGS': {
+      await storageService.updateCustomTag(message.tagName, message.updates)
+      return null
+    }
+
+    case 'DELETE_CUSTOM_TAG': {
+      await storageService.deleteCustomTag(message.tagName)
+      return null
+    }
+
+    // List handlers
+    case 'GET_LISTS': {
+      return storageService.getLists()
+    }
+
+    case 'CREATE_LIST': {
+      return storageService.createList(message.list)
+    }
+
+    case 'UPDATE_LIST': {
+      await storageService.updateList(message.listId, message.updates)
+      return null
+    }
+
+    case 'DELETE_LIST': {
+      await storageService.deleteList(message.listId)
+      return null
+    }
+
     default:
       throw new Error(`Unknown message type: ${(message as { type: string }).type}`)
   }

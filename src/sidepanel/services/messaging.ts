@@ -8,6 +8,8 @@ import type {
   ExportedData,
   UnifiedSearchResult,
   ImportResult,
+  CustomTagRegistry,
+  CustomList,
 } from '@/shared/types'
 
 /**
@@ -151,4 +153,48 @@ export async function exportData(): Promise<ExportedData> {
  */
 export async function importData(data: ExportedData): Promise<ImportResult> {
   return sendMessage<ImportResult>({ type: 'IMPORT_DATA', data })
+}
+
+// -------------------------------------------------------------------------
+// Tags
+// -------------------------------------------------------------------------
+
+export async function getCustomTags(): Promise<CustomTagRegistry> {
+  return sendMessage<CustomTagRegistry>({ type: 'GET_CUSTOM_TAGS' })
+}
+
+export async function updateCustomTags(
+  tagName: string,
+  updates: { color?: string; newName?: string }
+): Promise<void> {
+  return sendMessage<void>({ type: 'UPDATE_CUSTOM_TAGS', tagName, updates })
+}
+
+export async function deleteCustomTag(tagName: string): Promise<void> {
+  return sendMessage<void>({ type: 'DELETE_CUSTOM_TAG', tagName })
+}
+
+// -------------------------------------------------------------------------
+// Lists
+// -------------------------------------------------------------------------
+
+export async function getLists(): Promise<CustomList[]> {
+  return sendMessage<CustomList[]>({ type: 'GET_LISTS' })
+}
+
+export async function createList(
+  list: Omit<CustomList, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<CustomList> {
+  return sendMessage<CustomList>({ type: 'CREATE_LIST', list })
+}
+
+export async function updateList(
+  listId: string,
+  updates: Partial<CustomList>
+): Promise<void> {
+  return sendMessage<void>({ type: 'UPDATE_LIST', listId, updates })
+}
+
+export async function deleteList(listId: string): Promise<void> {
+  return sendMessage<void>({ type: 'DELETE_LIST', listId })
 }
