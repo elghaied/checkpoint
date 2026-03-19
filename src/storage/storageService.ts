@@ -302,8 +302,12 @@ export class StorageService {
     return serialize(async () => {
       const tags = await readCustomTags()
 
-      // No-op if tag doesn't exist
+      // Create tag if it doesn't exist yet (upsert)
       if (!(name in tags)) {
+        if (updates.color) {
+          tags[name] = { color: updates.color }
+          await writeCustomTags(tags)
+        }
         return
       }
 

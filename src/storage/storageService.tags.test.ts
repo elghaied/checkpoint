@@ -123,15 +123,27 @@ describe('StorageService — Custom Tags', () => {
       expect(tags['drama']).toEqual({ color: '#112233' })
     })
 
-    it('is a no-op for a non-existent tag', async () => {
+    it('upserts a non-existent tag when color is provided', async () => {
       await service.saveCustomTag('real', '#ffffff')
 
-      // Should not throw
+      // Should create the tag (upsert behavior)
       await service.updateCustomTag('ghost', { color: '#000000' })
+
+      const tags = await service.getCustomTags()
+      expect(Object.keys(tags)).toHaveLength(2)
+      expect(tags['ghost']).toEqual({ color: '#000000' })
+    })
+
+    it('is a no-op for a non-existent tag without color', async () => {
+      await service.saveCustomTag('real', '#ffffff')
+
+      // No color provided — cannot create, should be no-op
+      await service.updateCustomTag('ghost', { newName: 'phantom' })
 
       const tags = await service.getCustomTags()
       expect(Object.keys(tags)).toHaveLength(1)
       expect(tags['ghost']).toBeUndefined()
+      expect(tags['phantom']).toBeUndefined()
     })
   })
 
