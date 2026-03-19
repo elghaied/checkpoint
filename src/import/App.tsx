@@ -4,6 +4,8 @@ import { useBatchMatcher } from './hooks/useBatchMatcher'
 import styles from './styles/import.module.css'
 import { FileUpload } from './components/FileUpload'
 import { MatchProgress } from './components/MatchProgress'
+import { ReviewTable } from './components/ReviewTable'
+import type { ImportRow } from '@/shared/importTypes'
 
 export function App() {
   const {
@@ -63,8 +65,35 @@ export function App() {
             />
           </div>
         )
-      case 'review':
-        return <div className={styles.container}>Review phase (TODO)</div>
+      case 'review': {
+        const handleRowUpdate = (index: number, updates: Partial<ImportRow>) => {
+          const newRows = session.rows.map((r) =>
+            r.index === index ? { ...r, ...updates } : r
+          )
+          saveSession({ ...session, rows: newRows })
+        }
+
+        const failedRows = session.rows.filter((r) => r.matchStatus === 'failed')
+        const handleRetryFailed = failedRows.length > 0
+          ? () => {
+              const updatedRows = session.rows.map((r) =>
+                r.matchStatus === 'failed' ? { ...r, matchStatus: 'pending' as const } : r
+              )
+              saveSession({ ...session, phase: 'matching', rows: updatedRows })
+            }
+          : null
+
+        return (
+          <div className={styles.container}>
+            <ReviewTable
+              session={session}
+              onRowUpdate={handleRowUpdate}
+              onContinue={() => saveSession({ ...session, phase: 'confirmed' })}
+              onRetryFailed={handleRetryFailed}
+            />
+          </div>
+        )
+      }
       case 'confirmed':
         return <div className={styles.container}>Confirmed (TODO)</div>
     }
