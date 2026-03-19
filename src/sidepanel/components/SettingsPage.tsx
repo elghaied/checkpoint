@@ -277,6 +277,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
               </div>
             </div>
           </div>
+          <button
+            className="btn btn--secondary"
+            style={{ width: '100%', marginTop: '8px' }}
+            onClick={() => chrome.tabs.create({ url: 'https://github.com/elghaied/checkpoint/issues' })}
+          >
+            Report an issue
+          </button>
         </div>
       </div>
     </div>
