@@ -8,10 +8,11 @@ Three changes: replace the Header icon buttons with a vertical navigation rail, 
 
 ### Layout
 
-App layout changes from a single column to a flex row:
+App layout changes from a single column to a flex row. The `.app` container becomes `display: flex; flex-direction: row`. Content area is `flex: 1; overflow: auto`. NavRail is `flex-shrink: 0; width: 34px`. NavRail comes after content in DOM order (right side).
 
 ```
 ┌─────────────────────────┬────┐
+│  [content-area flex:1]  │34px│
 │                         │ ■  │  General (active, connected bg)
 │    Content Area         │ ■  │  Lists
 │    (current view)       │ ■  │  Tags
@@ -59,15 +60,16 @@ New component: `src/sidepanel/components/NavRail.tsx` + `.css`
 
 ### Header Simplification
 
-Remove the lists and settings icon buttons from Header. Header becomes: logo + "Checkpoint" title + tracked count badge only. The `onListsClick` and `onSettingsClick` props are removed.
+Remove the lists and settings icon buttons from Header. Header becomes: logo + "Checkpoint" title + tracked count badge only. The `onListsClick` and `onSettingsClick` props are removed. Navigation is handled entirely by NavRail at the App.tsx level.
 
 ### App.tsx Changes
 
 - Rename view type from `'list'` to `'general'`
 - Add `'tags'` to the view type
-- Wrap the content area and NavRail in a flex row container
+- Root `.app` container becomes a flex row: content area (`flex: 1`) + NavRail (`34px`)
 - NavRail receives `activeView` and `onViewChange`
-- When `activeView === 'tags'`, render the new TagsView component
+- When `activeView === 'tags'`, render the new TagsView component (self-contained, no `onBack` prop — NavRail handles navigation)
+- When `activeView === 'settings'`, SettingsPage also no longer needs `onBack` — NavRail handles it
 
 ## 2. ListsView UX Fix
 
@@ -78,8 +80,7 @@ Clicking a list name triggers rename. Opening requires clicking the narrow arrow
 ### Fix
 
 - **Click list row** (title, count, anywhere on the row body) → opens the list
-- **Pencil icon button** in the actions area → enters rename mode
-- Remove click-on-name-to-rename behavior
+- **Pencil icon button** in the actions area → enters rename mode (this is the only way to rename — the old click-on-name-to-rename behavior is removed intentionally)
 - Rename input still uses blur/Enter to submit, Escape to cancel
 - Pencil icon sits next to the delete button in the actions column
 
