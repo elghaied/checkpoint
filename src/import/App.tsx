@@ -14,7 +14,7 @@ export function App() {
   const {
     session, pendingReview, loading,
     saveSession, clearSession,
-    savePendingReview,
+    savePendingReview, clearPendingReview,
   } = useImportSession()
 
   const matcher = useBatchMatcher(
@@ -157,18 +157,31 @@ export function App() {
     )
   }
 
-  // Pending review from a previous import
-  if (pendingReview) {
-    return (
-      <div className={styles.container}>
-        <p>You have {pendingReview.items.length} titles pending review from a previous import.</p>
-      </div>
-    )
-  }
-
-  // No session — show file upload
+  // No session — show file upload (with pending review banner if applicable)
   return (
     <div className={styles.container}>
+      {pendingReview && pendingReview.items.length > 0 && (
+        <div style={{
+          padding: '12px 16px', background: '#1a2a3a', borderRadius: 8,
+          marginBottom: 16, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', fontSize: 13, color: '#60a5fa',
+        }}>
+          <span>{pendingReview.items.length} titles pending review from a previous import</span>
+          <button
+            onClick={() => {
+              if (confirm(`Discard ${pendingReview.items.length} unreviewed titles? This can't be undone.`)) {
+                clearPendingReview()
+              }
+            }}
+            style={{
+              fontSize: 12, color: '#888', background: 'none',
+              border: 'none', cursor: 'pointer', padding: '2px 6px',
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <FileUpload
         existingSession={null}
         onSessionCreated={(s) => saveSession(s)}
