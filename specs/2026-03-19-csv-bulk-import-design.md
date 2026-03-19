@@ -437,6 +437,7 @@ input: {
 
 - **Shared:** Types, utilities, constants from `src/shared/`. CSS design tokens (colors, typography, spacing) via shared CSS variables. Messaging wrapper pattern.
 - **Not shared:** React components. The import tab and side panel have different UIs (data table vs. card list) — sharing components would force abstractions that serve neither well.
+- **Implementation note:** The existing `copySidepanelHtml` Vite plugin deletes `dist/src/` after moving the sidepanel HTML. When the import entry is added, this cleanup will also remove `import/index.html`. The plugin must be updated to handle both HTML files before cleanup.
 
 ### Session Resume
 
@@ -457,6 +458,7 @@ Only one `ImportSession` at a time. If a session exists when the user tries to u
 - Case normalization: if registry has "Romance", CSV tag "romance" maps to existing entry
 - Trim whitespace during parse
 - No tag mapping step — frictionless, users adjust colors later in TagsView
+- **Implementation note:** `getNextColor()` currently lives inside the `useCustomTags` React hook. Extract the color-cycling logic to a shared utility so the import tab can use it without duplicating the hook.
 
 ---
 
