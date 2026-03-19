@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getCustomTags, updateCustomTags, deleteCustomTag as deleteTagMsg } from '../services/messaging'
-import { TAG_COLORS } from '@/shared/constants'
+import { TAG_COLORS, CUSTOM_TAGS_KEY } from '@/shared/constants'
 import type { CustomTagRegistry } from '@/shared/types'
 
 export function useCustomTags() {
@@ -12,6 +12,17 @@ export function useCustomTags() {
       if (!cancelled) setTags(result)
     }).catch(() => { /* ignore */ })
     return () => { cancelled = true }
+  }, [])
+
+  // Listen for storage changes so all instances stay in sync
+  useEffect(() => {
+    const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (CUSTOM_TAGS_KEY in changes && changes[CUSTOM_TAGS_KEY].newValue) {
+        setTags(changes[CUSTOM_TAGS_KEY].newValue as CustomTagRegistry)
+      }
+    }
+    chrome.storage.onChanged.addListener(listener)
+    return () => chrome.storage.onChanged.removeListener(listener)
   }, [])
 
   const refresh = useCallback(async () => {

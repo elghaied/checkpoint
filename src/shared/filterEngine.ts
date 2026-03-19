@@ -63,10 +63,10 @@ export function applyFilters(items: TrackedItem[], criteria: FilterCriteria): Tr
     if (formats.length > 0 && !formats.includes(item.format)) return false
 
     // Genres: tri-state
-    if (!matchesEntries(item.genres, genres)) return false
+    if (!matchesEntries(item.genres ?? [], genres)) return false
 
     // Tags: tri-state
-    if (!matchesEntries(item.tags, tags)) return false
+    if (!matchesEntries(item.tags ?? [], tags)) return false
 
     return true
   })

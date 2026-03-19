@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { CustomList, TrackedItem } from '@/shared/types'
 import { applyFilters } from '@/shared/filterEngine'
 import './ListsView.css'
@@ -25,11 +25,6 @@ function getListItemCount(list: CustomList, allItems: TrackedItem[]): number {
   }).length
 }
 
-interface RenameState {
-  id: string
-  value: string
-}
-
 const ListsView: React.FC<ListsViewProps> = ({
   lists,
   allItems,
@@ -38,25 +33,28 @@ const ListsView: React.FC<ListsViewProps> = ({
   onRenameList,
   onDeleteList,
 }) => {
-  const [renaming, setRenaming] = useState<RenameState | null>(null)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
 
+  // Only focus/select when a NEW rename starts, not on every keystroke
   useEffect(() => {
-    if (renaming && renameInputRef.current) {
+    if (renamingId && renameInputRef.current) {
       renameInputRef.current.focus()
       renameInputRef.current.select()
     }
-  }, [renaming])
+  }, [renamingId])
 
-  const handleRenameSubmit = (id: string) => {
-    if (!renaming) return
-    const trimmed = renaming.value.trim()
+  const handleRenameSubmit = useCallback((id: string) => {
+    if (!renamingId) return
+    const trimmed = renameValue.trim()
     if (trimmed) {
       onRenameList(id, trimmed)
     }
-    setRenaming(null)
-  }
+    setRenamingId(null)
+    setRenameValue('')
+  }, [renamingId, renameValue, onRenameList])
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
@@ -69,7 +67,7 @@ const ListsView: React.FC<ListsViewProps> = ({
   }
 
   const handleRowClick = (list: CustomList) => {
-    if (renaming?.id === list.id) return
+    if (renamingId === list.id) return
     setConfirmingDelete(null)
     onOpenList(list)
   }
@@ -91,7 +89,7 @@ const ListsView: React.FC<ListsViewProps> = ({
         <ul className="lists-view__list">
           {lists.map((list) => {
             const count = getListItemCount(list, allItems)
-            const isRenaming = renaming?.id === list.id
+            const isRenaming = renamingId === list.id
             const isConfirmingDelete = confirmingDelete === list.id
 
             return (
@@ -117,14 +115,12 @@ const ListsView: React.FC<ListsViewProps> = ({
                     <input
                       ref={renameInputRef}
                       className="lists-view__rename-input"
-                      value={renaming.value}
-                      onChange={(e) =>
-                        setRenaming({ id: list.id, value: e.target.value })
-                      }
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
                       onBlur={() => handleRenameSubmit(list.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleRenameSubmit(list.id)
-                        if (e.key === 'Escape') setRenaming(null)
+                        if (e.key === 'Escape') { setRenamingId(null); setRenameValue('') }
                       }}
                     />
                   ) : (
@@ -132,7 +128,8 @@ const ListsView: React.FC<ListsViewProps> = ({
                       className="lists-view__item-name"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setRenaming({ id: list.id, value: list.name })
+                        setRenamingId(list.id)
+                        setRenameValue(list.name)
                         setConfirmingDelete(null)
                       }}
                       title="Click to rename"

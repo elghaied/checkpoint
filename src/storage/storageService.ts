@@ -301,7 +301,15 @@ export class StorageService {
   async updateCustomTag(name: string, updates: { color?: string; newName?: string }): Promise<void> {
     return serialize(async () => {
       const tags = await readCustomTags()
-      if (!(name in tags)) return
+
+      // Create tag if it doesn't exist yet (upsert)
+      if (!(name in tags)) {
+        if (updates.color) {
+          tags[name] = { color: updates.color }
+          await writeCustomTags(tags)
+        }
+        return
+      }
 
       const existing = tags[name]
       const newColor = updates.color ?? existing.color
