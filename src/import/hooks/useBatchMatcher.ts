@@ -215,11 +215,11 @@ export function useBatchMatcher(
   }, [onCheckpoint, onComplete])
 
   const start = useCallback((session: ImportSession) => {
-    sessionRef.current = { ...session }
-    // Update rows array reference in sessionRef to a mutable copy
+    // Guard against double-start (e.g. React StrictMode double-invoking effects)
+    if (state.isRunning) return
     sessionRef.current = { ...session, rows: session.rows.map((r) => ({ ...r })) }
     runLoop(sessionRef.current)
-  }, [runLoop])
+  }, [runLoop, state.isRunning])
 
   const pause = useCallback(() => {
     pausedRef.current = true
