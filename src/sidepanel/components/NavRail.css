@@ -53,9 +53,9 @@
   border-radius: 0 6px 6px 0;
 }
 
-/* Settings tab pushed to the bottom */
+/* Settings tab — separated by a small gap, not pinned to bottom */
 .nav-rail__tab:last-child {
-  margin-top: auto;
+  margin-top: 12px;
 }
 
 .nav-rail__icon {
