@@ -27,6 +27,9 @@ function makeItem(overrides: Partial<TrackedItem> = {}): TrackedItem {
     lastApiCheck: null,
     notificationsEnabled: true,
     anilistStatus: 'RELEASING',
+    genres: [],
+    tags: [],
+    genresBackfilled: false,
     ...overrides,
   }
 }
@@ -50,6 +53,8 @@ function makeExportedData(items: ExportedItem[]): ExportedData {
       exportVersion: 1,
     },
     items,
+    customTags: {},
+    customLists: [],
   }
 }
 

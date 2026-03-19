@@ -1,7 +1,11 @@
-import { TrackedItem, ExtensionSettings, DEFAULT_SETTINGS, ExportedData, ExportedItem, ImportResult } from '@/shared/types'
+import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress } from '@/shared/types'
+import { DEFAULT_SETTINGS } from '@/shared/types'
 
 const STORAGE_KEY = 'trackedItems'
 const SETTINGS_KEY = 'settings'
+const CUSTOM_TAGS_KEY = 'customTags'
+const CUSTOM_LISTS_KEY = 'customLists'
+const BACKFILL_PROGRESS_KEY = 'backfillProgress'
 
 /**
  * Simple serialization queue to prevent concurrent read-modify-write races.
@@ -55,6 +59,48 @@ function readSettings(): Promise<ExtensionSettings> {
 function writeSettings(settings: ExtensionSettings): Promise<void> {
   return new Promise((resolve) => {
     chrome.storage.local.set({ [SETTINGS_KEY]: settings }, resolve)
+  })
+}
+
+/**
+ * Reads the custom tag registry from chrome.storage.local.
+ * Returns an empty object when the key has never been written.
+ */
+function readCustomTags(): Promise<CustomTagRegistry> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(CUSTOM_TAGS_KEY, (result) => {
+      resolve((result[CUSTOM_TAGS_KEY] as CustomTagRegistry) ?? {})
+    })
+  })
+}
+
+/**
+ * Overwrites the custom tag registry in chrome.storage.local.
+ */
+function writeCustomTags(tags: CustomTagRegistry): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [CUSTOM_TAGS_KEY]: tags }, resolve)
+  })
+}
+
+/**
+ * Reads the custom lists array from chrome.storage.local.
+ * Returns an empty array when the key has never been written.
+ */
+function readLists(): Promise<CustomList[]> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(CUSTOM_LISTS_KEY, (result) => {
+      resolve((result[CUSTOM_LISTS_KEY] as CustomList[]) ?? [])
+    })
+  })
+}
+
+/**
+ * Overwrites the custom lists array in chrome.storage.local.
+ */
+function writeLists(lists: CustomList[]): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [CUSTOM_LISTS_KEY]: lists }, resolve)
   })
 }
 
@@ -137,11 +183,22 @@ export class StorageService {
 
   /**
    * Remove an item by providerId.  No-ops when the ID does not exist.
+   * Also removes the item from all manual lists' itemIds arrays.
    */
   async delete(providerId: string): Promise<void> {
     return serialize(async () => {
       const items = await readAll()
       await writeAll(items.filter((item) => item.providerId !== providerId))
+
+      // Clean up from all manual lists
+      const lists = await readLists()
+      const updatedLists = lists.map((list) => {
+        if (list.type !== 'manual') return list
+        const idx = list.itemIds.indexOf(providerId)
+        if (idx === -1) return list
+        return { ...list, itemIds: list.itemIds.filter((id) => id !== providerId) }
+      })
+      await writeLists(updatedLists)
     })
   }
 
@@ -214,6 +271,188 @@ export class StorageService {
   }
 
   // -------------------------------------------------------------------------
+  // Custom Tag methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Return the full custom tag registry.
+   */
+  async getCustomTags(): Promise<CustomTagRegistry> {
+    return readCustomTags()
+  }
+
+  /**
+   * Save (add or overwrite) a tag in the registry.
+   */
+  async saveCustomTag(name: string, color: string): Promise<void> {
+    return serialize(async () => {
+      const tags = await readCustomTags()
+      tags[name] = { color }
+      await writeCustomTags(tags)
+    })
+  }
+
+  /**
+   * Update a tag's color and/or rename it.
+   * Rename cascades to all items' tags[] arrays and smart list filter entries.
+   */
+  async updateCustomTag(name: string, updates: { color?: string; newName?: string }): Promise<void> {
+    return serialize(async () => {
+      const tags = await readCustomTags()
+      if (!(name in tags)) return
+
+      const existing = tags[name]
+      const newColor = updates.color ?? existing.color
+      const newName = updates.newName ?? name
+
+      // Update registry
+      delete tags[name]
+      tags[newName] = { color: newColor }
+      await writeCustomTags(tags)
+
+      // If renaming, cascade to items and lists
+      if (updates.newName && updates.newName !== name) {
+        // Cascade to items
+        const items = await readAll()
+        const updatedItems = items.map((item) => {
+          const idx = item.tags.indexOf(name)
+          if (idx === -1) return item
+          const newTags = [...item.tags]
+          newTags[idx] = updates.newName!
+          return { ...item, tags: newTags }
+        })
+        await writeAll(updatedItems)
+
+        // Cascade to smart list filter entries
+        const lists = await readLists()
+        const updatedLists = lists.map((list) => {
+          if (!list.filters) return list
+          const newTagFilters = list.filters.tags.map((entry) =>
+            entry.value === name ? { ...entry, value: updates.newName! } : entry
+          )
+          return { ...list, filters: { ...list.filters, tags: newTagFilters } }
+        })
+        await writeLists(updatedLists)
+      }
+    })
+  }
+
+  /**
+   * Delete a tag from the registry, cascading to items and smart list filters.
+   */
+  async deleteCustomTag(name: string): Promise<void> {
+    return serialize(async () => {
+      const tags = await readCustomTags()
+      if (!(name in tags)) return
+
+      delete tags[name]
+      await writeCustomTags(tags)
+
+      // Cascade to items
+      const items = await readAll()
+      const updatedItems = items.map((item) => {
+        if (!item.tags.includes(name)) return item
+        return { ...item, tags: item.tags.filter((t) => t !== name) }
+      })
+      await writeAll(updatedItems)
+
+      // Cascade to smart list filter entries
+      const lists = await readLists()
+      const updatedLists = lists.map((list) => {
+        if (!list.filters) return list
+        const newTagFilters = list.filters.tags.filter((entry) => entry.value !== name)
+        return { ...list, filters: { ...list.filters, tags: newTagFilters } }
+      })
+      await writeLists(updatedLists)
+    })
+  }
+
+  // -------------------------------------------------------------------------
+  // Custom List methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Return all custom lists.
+   */
+  async getLists(): Promise<CustomList[]> {
+    return readLists()
+  }
+
+  /**
+   * Create a new list with a generated id and timestamps.
+   */
+  async createList(input: Omit<CustomList, 'id' | 'createdAt' | 'updatedAt'>): Promise<CustomList> {
+    return serialize(async () => {
+      const lists = await readLists()
+      const now = Date.now()
+      const newList: CustomList = {
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+      }
+      lists.push(newList)
+      await writeLists(lists)
+      return newList
+    })
+  }
+
+  /**
+   * Apply a partial update to an existing list.
+   * Protects id from being overwritten; auto-sets updatedAt.
+   */
+  async updateList(listId: string, updates: Partial<CustomList>): Promise<void> {
+    return serialize(async () => {
+      const lists = await readLists()
+      const index = lists.findIndex((l) => l.id === listId)
+      if (index === -1) return
+
+      lists[index] = {
+        ...lists[index],
+        ...updates,
+        id: listId, // protect id from being overwritten
+        updatedAt: Date.now(),
+      }
+
+      await writeLists(lists)
+    })
+  }
+
+  /**
+   * Delete a list by id.
+   */
+  async deleteList(listId: string): Promise<void> {
+    return serialize(async () => {
+      const lists = await readLists()
+      await writeLists(lists.filter((l) => l.id !== listId))
+    })
+  }
+
+  // -------------------------------------------------------------------------
+  // Backfill progress methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Write backfill progress directly (not serialized — direct write).
+   */
+  async writeBackfillProgress(progress: BackfillProgress): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [BACKFILL_PROGRESS_KEY]: progress }, resolve)
+    })
+  }
+
+  /**
+   * Read backfill progress from storage.
+   */
+  async getBackfillProgress(): Promise<BackfillProgress | null> {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(BACKFILL_PROGRESS_KEY, (result) => {
+        resolve((result[BACKFILL_PROGRESS_KEY] as BackfillProgress) ?? null)
+      })
+    })
+  }
+
+  // -------------------------------------------------------------------------
   // Export/Import
   // -------------------------------------------------------------------------
 
@@ -223,6 +462,8 @@ export class StorageService {
   async exportData(): Promise<ExportedData> {
     const items = await readAll()
     const settings = await readSettings()
+    const customTags = await readCustomTags()
+    const customLists = await readLists()
 
     const exportedItems: ExportedItem[] = items.map((item) => ({
       provider: item.provider,
@@ -239,6 +480,9 @@ export class StorageService {
       latestKnownChapters: item.latestKnownChapters,
       notificationsEnabled: item.notificationsEnabled,
       anilistStatus: item.anilistStatus,
+      genres: item.genres ?? [],
+      tags: item.tags ?? [],
+      genresBackfilled: item.genresBackfilled ?? false,
     }))
 
     return {
@@ -247,6 +491,8 @@ export class StorageService {
       source: 'checkpoint-extension',
       settings,
       items: exportedItems,
+      customTags,
+      customLists,
     }
   }
 
@@ -283,20 +529,24 @@ export class StorageService {
 
         const existing = existingMap.get(importItem.providerId)
 
+        // Default new fields if not present in imported item
+        const normalizedItem: TrackedItem = {
+          ...importItem,
+          genres: importItem.genres ?? [],
+          tags: importItem.tags ?? [],
+          genresBackfilled: importItem.genresBackfilled ?? false,
+          lastApiCheck: null,
+        }
+
         if (!existing) {
           // New item - add it
-          const newItem: TrackedItem = {
-            ...importItem,
-            lastApiCheck: null,
-          }
-          existingMap.set(importItem.providerId, newItem)
+          existingMap.set(importItem.providerId, normalizedItem)
           details.importedTitles.push(importItem.titles.main)
           imported++
         } else if (importItem.updatedAt > existing.updatedAt) {
           // Imported item is newer - update
           existingMap.set(importItem.providerId, {
-            ...existing,
-            ...importItem,
+            ...normalizedItem,
             lastApiCheck: existing.lastApiCheck, // Preserve local API check time
           })
           details.updatedTitles.push(importItem.titles.main)
@@ -312,6 +562,21 @@ export class StorageService {
       // Also import settings if they exist
       if (data.settings) {
         await writeSettings(data.settings)
+      }
+
+      // Merge customTags (incoming wins on conflict)
+      if (data.customTags) {
+        const existingTags = await readCustomTags()
+        const mergedTags = { ...existingTags, ...data.customTags }
+        await writeCustomTags(mergedTags)
+      }
+
+      // Merge customLists (add new by ID, skip existing)
+      if (data.customLists && data.customLists.length > 0) {
+        const existingLists = await readLists()
+        const existingListIds = new Set(existingLists.map((l) => l.id))
+        const newLists = data.customLists.filter((l) => !existingListIds.has(l.id))
+        await writeLists([...existingLists, ...newLists])
       }
 
       return { imported, updated, skipped, details }
