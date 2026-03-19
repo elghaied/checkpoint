@@ -1,17 +1,20 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useImportSession } from './hooks/useImportSession'
 import { useBatchMatcher } from './hooks/useBatchMatcher'
 import styles from './styles/import.module.css'
 import { FileUpload } from './components/FileUpload'
 import { MatchProgress } from './components/MatchProgress'
 import { ReviewTable } from './components/ReviewTable'
+import { ConfirmPanel } from './components/ConfirmPanel'
 import type { ImportRow } from '@/shared/importTypes'
 
 export function App() {
+  const [importResult, setImportResult] = useState<{ added: number; updated: number; skipped: number } | null>(null)
+
   const {
     session, pendingReview, loading,
     saveSession, clearSession,
-    savePendingReview: _savePendingReview, clearPendingReview: _clearPendingReview,
+    savePendingReview, clearPendingReview: _clearPendingReview,
   } = useImportSession()
 
   const matcher = useBatchMatcher(
@@ -95,8 +98,62 @@ export function App() {
         )
       }
       case 'confirmed':
-        return <div className={styles.container}>Confirmed (TODO)</div>
+        return (
+          <div className={styles.container}>
+            <ConfirmPanel
+              session={session}
+              onComplete={setImportResult}
+              onSavePendingReview={savePendingReview}
+              onClearSession={clearSession}
+            />
+          </div>
+        )
     }
+  }
+
+  // Import complete screen
+  if (importResult) {
+    return (
+      <div className={styles.container}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', margin: '0 0 16px' }}>
+          Import Complete
+        </h2>
+        <p style={{ fontSize: '15px', color: '#ccc', margin: '0 0 8px' }}>
+          <strong style={{ color: '#fff' }}>{importResult.added}</strong> title{importResult.added !== 1 ? 's' : ''} added to your library
+        </p>
+        {importResult.updated > 0 && (
+          <p style={{ fontSize: '15px', color: '#ccc', margin: '0 0 8px' }}>
+            <strong style={{ color: '#fff' }}>{importResult.updated}</strong> existing title{importResult.updated !== 1 ? 's' : ''} updated
+          </p>
+        )}
+        {importResult.skipped > 0 && (
+          <p style={{ fontSize: '15px', color: '#ccc', margin: '0 0 8px' }}>
+            <strong style={{ color: '#fff' }}>{importResult.skipped}</strong> skipped
+          </p>
+        )}
+        {pendingReview && pendingReview.items.length > 0 && (
+          <p style={{ fontSize: '15px', color: '#ffa726', margin: '0 0 8px' }}>
+            <strong>{pendingReview.items.length}</strong> title{pendingReview.items.length !== 1 ? 's' : ''} staged for later review
+          </p>
+        )}
+        <button
+          style={{
+            marginTop: '20px',
+            background: '#4caf50',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+          onClick={() => setImportResult(null)}
+        >
+          Import Another CSV
+        </button>
+      </div>
+    )
   }
 
   // Pending review from a previous import
