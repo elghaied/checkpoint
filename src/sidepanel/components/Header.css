@@ -31,15 +31,24 @@
   color: var(--text-secondary);
 }
 
-.header__settings-btn {
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header__icon-btn {
   background: none;
   border: none;
   padding: 4px;
   cursor: pointer;
   color: var(--text-secondary);
   transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
 }
 
-.header__settings-btn:hover {
+.header__icon-btn:hover {
   color: var(--text-primary);
 }

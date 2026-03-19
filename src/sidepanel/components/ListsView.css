@@ -1,0 +1,140 @@
+.lists-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.lists-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lists-view__title {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+.lists-view__new-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.lists-view__empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.lists-view__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lists-view__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  animation: cardIn 0.2s ease both;
+}
+
+.lists-view__item:hover {
+  background: var(--surface-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.lists-view__item-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.lists-view__item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lists-view__item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lists-view__item-name:hover {
+  color: var(--accent-hover);
+}
+
+.lists-view__item-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.lists-view__rename-input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.lists-view__item-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lists-view__delete-btn,
+.lists-view__open-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.12s ease, background 0.12s ease;
+  font-size: 12px;
+}
+
+.lists-view__delete-btn:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.lists-view__delete-btn--confirm {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 6px;
+}
+
+.lists-view__open-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}

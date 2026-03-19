@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { TrackedItem } from '@/shared/types'
 import { useCustomTags } from '../hooks/useCustomTags'
+import { useCustomLists } from '../hooks/useCustomLists'
 import TagInput from './TagInput'
 import './EditModal.css'
 
@@ -22,6 +23,8 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [editedTags, setEditedTags] = useState<string[]>(item.tags ?? [])
   const { tags: tagRegistry, updateTag, getNextColor } = useCustomTags()
+  const { lists, updateList } = useCustomLists()
+  const manualLists = lists.filter((l) => l.type === 'manual')
 
   const isProgressValid = progressValue === '' || /^\d+(\.\d+)?$/.test(progressValue.trim())
 
@@ -190,6 +193,33 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
                 getNextColor={getNextColor}
               />
             </div>
+
+            {manualLists.length > 0 && (
+              <div className="edit-form__field">
+                <label className="edit-form__label">Lists</label>
+                <div className="edit-form__list-membership">
+                  {manualLists.map((list) => {
+                    const isMember = list.itemIds.includes(item.providerId)
+                    return (
+                      <label key={list.id} className="edit-form__list-row">
+                        <input
+                          type="checkbox"
+                          className="edit-form__list-checkbox"
+                          checked={isMember}
+                          onChange={async () => {
+                            const newIds = isMember
+                              ? list.itemIds.filter((id) => id !== item.providerId)
+                              : [...list.itemIds, item.providerId]
+                            await updateList(list.id, { itemIds: newIds })
+                          }}
+                        />
+                        <span className="edit-form__list-name">{list.name}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="edit-form__actions">
               <button type="button" className="btn btn--danger" onClick={handleDeleteClick}>

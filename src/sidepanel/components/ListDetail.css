@@ -1,0 +1,101 @@
+.list-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.list-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.list-detail__back-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.12s ease, background 0.12s ease;
+  flex-shrink: 0;
+}
+
+.list-detail__back-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.list-detail__title {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-detail__actions {
+  flex-shrink: 0;
+}
+
+.list-detail__action-btn {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.list-detail__count {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.list-detail__empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.list-detail__items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+}
+
+.list-detail__card-wrap {
+  position: relative;
+}
+
+.list-detail__remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  backdrop-filter: blur(4px);
+}
+
+.list-detail__remove-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-glow);
+  background: rgba(233, 69, 96, 0.1);
+}

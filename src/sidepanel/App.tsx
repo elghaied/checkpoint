@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import type { TrackedItem } from '@/shared/types'
+import type { TrackedItem, CustomList } from '@/shared/types'
 import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
 import TabBar, { type TabValue } from './components/TabBar'
@@ -9,14 +9,18 @@ import AddButton from './components/AddButton'
 import SearchModal from './components/SearchModal'
 import EditModal from './components/EditModal'
 import SettingsPage from './components/SettingsPage'
+import ListsView from './components/ListsView'
+import ListDetail from './components/ListDetail'
+import ListItemPicker from './components/ListItemPicker'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
+import { useCustomLists } from './hooks/useCustomLists'
 import { deleteItem, updateItem, ping } from './services/messaging'
 import { createLogger } from '@/shared/logger'
 
 const log = createLogger('app')
 
-type View = 'list' | 'settings'
+type View = 'list' | 'settings' | 'lists'
 
 export default function App() {
   const [view, setView] = useState<View>('list')
@@ -30,6 +34,11 @@ export default function App() {
     item: TrackedItem
     timeoutId: number
   } | null>(null)
+
+  // Lists state
+  const { lists, refresh: refreshLists, createList, updateList, deleteList } = useCustomLists()
+  const [selectedList, setSelectedList] = useState<CustomList | null>(null)
+  const [showItemPicker, setShowItemPicker] = useState(false)
 
   useEffect(() => {
     ping().catch(() => {
@@ -117,6 +126,55 @@ export default function App() {
     }
   }
 
+  // ---- List handlers ----
+
+  const handleCreateList = async () => {
+    const name = `List ${lists.length + 1}`
+    await createList({ name, type: 'manual', itemIds: [], filters: null })
+  }
+
+  const handleRenameList = async (id: string, name: string) => {
+    await updateList(id, { name })
+  }
+
+  const handleDeleteList = async (id: string) => {
+    await deleteList(id)
+    if (selectedList?.id === id) {
+      setSelectedList(null)
+    }
+  }
+
+  const handleOpenList = (list: CustomList) => {
+    setSelectedList(list)
+  }
+
+  const handleListBack = () => {
+    setSelectedList(null)
+    refreshLists()
+  }
+
+  const handleAddItemsToList = () => {
+    setShowItemPicker(true)
+  }
+
+  const handleItemPickerSave = async (ids: string[]) => {
+    if (!selectedList) return
+    await updateList(selectedList.id, { itemIds: ids })
+    // Update selectedList reference so ListDetail re-renders with new items
+    const updated = lists.find((l) => l.id === selectedList.id)
+    if (updated) {
+      setSelectedList({ ...updated, itemIds: ids })
+    }
+    setShowItemPicker(false)
+  }
+
+  const handleRemoveItemFromList = async (providerId: string) => {
+    if (!selectedList) return
+    const newIds = selectedList.itemIds.filter((id) => id !== providerId)
+    await updateList(selectedList.id, { itemIds: newIds })
+    setSelectedList((prev) => prev ? { ...prev, itemIds: newIds } : null)
+  }
+
   const isAddLoading = ['extracting', 'searching', 'saving'].includes(addItem.status)
 
   // Settings page view
@@ -130,10 +188,76 @@ export default function App() {
     )
   }
 
+  // Lists view
+  if (view === 'lists') {
+    return (
+      <ErrorBoundary>
+        <div className="app">
+          <Header
+            onSettingsClick={() => setView('settings')}
+            onListsClick={() => { setView('list'); setSelectedList(null) }}
+            count={items.length}
+          />
+          {selectedList ? (
+            <ListDetail
+              list={selectedList}
+              allItems={items}
+              onBack={handleListBack}
+              onAddItems={handleAddItemsToList}
+              onEditFilters={() => { /* placeholder for Task 12 */ }}
+              onRemoveItem={handleRemoveItemFromList}
+              onItemEdit={handleEdit}
+            />
+          ) : (
+            <ListsView
+              lists={lists}
+              allItems={items}
+              onOpenList={handleOpenList}
+              onCreateList={handleCreateList}
+              onRenameList={handleRenameList}
+              onDeleteList={handleDeleteList}
+            />
+          )}
+
+          {showItemPicker && selectedList && (
+            <ListItemPicker
+              allItems={items}
+              selectedIds={selectedList.itemIds}
+              onSave={handleItemPickerSave}
+              onClose={() => setShowItemPicker(false)}
+            />
+          )}
+
+          {editingItem && (
+            <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={() => setEditingItem(null)}>Close</button></div>}>
+              <EditModal
+                item={editingItem}
+                onSave={handleSaveEdit}
+                onDelete={handleDelete}
+                onClose={() => setEditingItem(null)}
+              />
+            </ErrorBoundary>
+          )}
+
+          {pendingDelete && (
+            <div className="toast toast--undo">
+              <span>Deleted &ldquo;{pendingDelete.item.titles.main}&rdquo;</span>
+              <button onClick={handleUndo}>Undo</button>
+            </div>
+          )}
+        </div>
+      </ErrorBoundary>
+    )
+  }
+
   return (
     <ErrorBoundary>
     <div className="app">
-      <Header onSettingsClick={() => setView('settings')} count={items.length} />
+      <Header
+        onSettingsClick={() => setView('settings')}
+        onListsClick={() => setView('lists')}
+        count={items.length}
+      />
       {connectionError && (
         <div className="connection-banner">{connectionError}</div>
       )}

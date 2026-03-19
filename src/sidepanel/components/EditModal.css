@@ -135,3 +135,39 @@
   overflow: visible;
   position: relative;
 }
+
+/* List membership checkboxes */
+.edit-form__list-membership {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-form__list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s ease;
+}
+
+.edit-form__list-row:hover {
+  background: var(--surface-hover);
+  border-color: var(--surface-border);
+}
+
+.edit-form__list-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.edit-form__list-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
