@@ -13,11 +13,13 @@ import ListsView from './components/ListsView'
 import ListDetail from './components/ListDetail'
 import ListItemPicker from './components/ListItemPicker'
 import { FilterPanel } from './components/FilterPanel'
+import { BackfillIndicator } from './components/BackfillIndicator'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { useCustomLists } from './hooks/useCustomLists'
 import { useCustomTags } from './hooks/useCustomTags'
 import { useFilterPanel } from './hooks/useFilterPanel'
+import { useBackfillProgress } from './hooks/useBackfillProgress'
 import { deleteItem, updateItem, ping } from './services/messaging'
 import { createLogger } from '@/shared/logger'
 import type { FilterState } from './hooks/useFilterPanel'
@@ -35,6 +37,7 @@ export default function App() {
   const addItem = useAddItem(refresh)
   const { tags: tagRegistry } = useCustomTags()
   const filterPanel = useFilterPanel(items, activeTab)
+  const backfillProgress = useBackfillProgress()
   const [editingItem, setEditingItem] = useState<TrackedItem | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{
     item: TrackedItem
@@ -282,6 +285,9 @@ export default function App() {
       />
       {connectionError && (
         <div className="connection-banner">{connectionError}</div>
+      )}
+      {backfillProgress && (
+        <BackfillIndicator progress={backfillProgress} />
       )}
       <main className="main">
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
