@@ -17,3 +17,22 @@ export const TOAST_DURATION_MS = 2000
 // Chapter checking
 export const CHAPTER_CHECK_INITIAL_DELAY_MIN = 1
 export const CHAPTER_CHECK_ALARM_NAME = 'checkpoint-chapter-check'
+
+// Tag colors
+export const TAG_COLORS = [
+  '#e94560', '#00d4aa', '#f59e0b', '#8b5cf6',
+  '#3b82f6', '#ec4899', '#10b981', '#f97316',
+  '#06b6d4', '#84cc16', '#a855f7', '#ef4444',
+]
+
+// Backfill
+export const BACKFILL_BATCH_SIZE = 5
+export const BACKFILL_BATCH_DELAY_MS = 1100
+
+// Default lists
+export const DEFAULT_LIST_NAMES = ['Reading', 'Completed', 'Plan to Read']
+
+// Storage keys
+export const CUSTOM_TAGS_KEY = 'customTags'
+export const CUSTOM_LISTS_KEY = 'customLists'
+export const BACKFILL_PROGRESS_KEY = 'backfillProgress'

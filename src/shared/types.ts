@@ -32,6 +32,11 @@ export interface TrackedItem {
   lastApiCheck: number | null            // Timestamp of last AniList check
   notificationsEnabled: boolean          // Per-item notification toggle
   anilistStatus: string | null           // RELEASING, FINISHED, HIATUS, etc.
+
+  // Genre & tag fields
+  genres: string[]              // From API, normalized
+  tags: string[]                // User-defined freeform tags
+  genresBackfilled: boolean     // True once genre fetch attempted (both providers if needed)
 }
 
 // Extension settings
@@ -66,6 +71,9 @@ export interface ExportedItem {
   latestKnownChapters: number | null
   notificationsEnabled: boolean
   anilistStatus: string | null
+  genres: string[]
+  tags: string[]
+  genresBackfilled: boolean
 }
 
 export interface ExportedData {
@@ -74,6 +82,8 @@ export interface ExportedData {
   source: 'checkpoint-extension'
   settings: ExtensionSettings
   items: ExportedItem[]
+  customTags: CustomTagRegistry
+  customLists: CustomList[]
 }
 
 // Import result with per-title details
@@ -106,6 +116,7 @@ export interface AniListMedia {
   countryOfOrigin: string | null
   status: string
   chapters: number | null
+  genres: string[]
 }
 
 // MangaDex media response (simplified)
@@ -117,6 +128,7 @@ export interface MangaDexMedia {
   originalLanguage: string // ja, ko, zh, etc.
   status: string | null
   lastChapter: string | null
+  genres: string[]
 }
 
 // Unified search result for multi-provider search
@@ -128,8 +140,42 @@ export interface UnifiedSearchResult {
   format: 'MANGA' | 'MANHWA' | 'MANHUA'
   status: string | null
   chapters: number | null
+  genres: string[]
   confidence: number
   originalData: AniListMedia | MangaDexMedia
+}
+
+// Filter entry for tri-state filtering
+export interface FilterEntry {
+  value: string
+  mode: 'and' | 'or' | 'exclude'
+}
+
+// Custom list
+export interface CustomList {
+  id: string
+  name: string
+  type: 'manual' | 'smart'
+  itemIds: string[]
+  filters: {
+    formats: string[]
+    genres: FilterEntry[]
+    tags: FilterEntry[]
+  } | null
+  createdAt: number
+  updatedAt: number
+}
+
+// Tag registry
+export interface CustomTagRegistry {
+  [tagName: string]: { color: string }
+}
+
+// Backfill progress
+export interface BackfillProgress {
+  completed: number
+  total: number
+  status: 'running' | 'done'
 }
 
 // Message types for chrome.runtime messaging
@@ -154,6 +200,15 @@ export type MessageRequest =
   // Export/Import
   | { type: 'EXPORT_DATA' }
   | { type: 'IMPORT_DATA'; data: ExportedData }
+  // Tags
+  | { type: 'GET_CUSTOM_TAGS' }
+  | { type: 'UPDATE_CUSTOM_TAGS'; tagName: string; updates: { color?: string; newName?: string } }
+  | { type: 'DELETE_CUSTOM_TAG'; tagName: string }
+  // Lists
+  | { type: 'GET_LISTS' }
+  | { type: 'CREATE_LIST'; list: Omit<CustomList, 'id' | 'createdAt' | 'updatedAt'> }
+  | { type: 'UPDATE_LIST'; listId: string; updates: Partial<CustomList> }
+  | { type: 'DELETE_LIST'; listId: string }
 
 export type MessageResponse<T = unknown> =
   | { data: T }
