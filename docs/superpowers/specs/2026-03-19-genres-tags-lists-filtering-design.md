@@ -67,7 +67,7 @@ Cycles back to start after all 12 are used. Users can override per-tag.
 
 ### Export/Import
 
-`ExportedData` expands to include `customTags` and `customLists`. Import merges these alongside existing item data using the same last-write-wins strategy.
+`ExportedData` expands to include `customTags` and `customLists`. `ExportedItem` gains `genres`, `tags`, and `genresBackfilled` fields to match TrackedItem. Import merges these alongside existing item data using the same last-write-wins strategy.
 
 ## 2. API Changes — Genre Fetching
 
@@ -145,10 +145,14 @@ For each item where genresBackfilled !== true:
 
 Non-blocking bar at top of side panel: `"Updating metadata... 8/24"`. Disappears when done.
 
-New message type:
+**Delivery mechanism**: The background service writes backfill progress to a `chrome.storage.local` key (`backfillProgress`), and the side panel listens via `chrome.storage.onChanged` — the same pattern used by `useTrackedItems` for real-time UI updates. No new message type needed; this avoids introducing a BG → Panel push pattern that doesn't exist in the current architecture.
+
 ```typescript
-BACKFILL_PROGRESS: { completed: number, total: number, status: 'running' | 'done' }
+// Storage key
+backfillProgress: { completed: number, total: number, status: 'running' | 'done' } | null
 ```
+
+The side panel reads this on mount and subscribes to changes. When `status === 'done'`, the indicator disappears and the key can be cleared.
 
 ## 4. Custom Tags
 
@@ -166,8 +170,9 @@ Each tag pill in EditModal is clickable. Opens a small swatch picker (same 12 pa
 ### Tag Management
 
 - Tags persist in `customTags` registry even when removed from all items (for future autocomplete)
-- "Manage Tags" accessible from filter panel or settings — rename or fully delete tags
-- Deleting a tag removes it from the registry and from all items' `tags[]` arrays
+- "Manage Tags" accessible from the SettingsPage — rename or fully delete tags
+- Renaming a tag cascades: updates the `customTags` registry key, all items' `tags[]` arrays, and any smart list filter entries referencing the old name
+- Deleting a tag cascades: removes from the registry, all items' `tags[]` arrays, and any smart list filter entries referencing it
 
 ### Message Types
 
@@ -222,6 +227,10 @@ On first install: "Reading", "Completed", "Plan to Read" — all manual, all emp
 - From list view: remove button on each card (removes from list only, item stays tracked)
 - From EditModal: untoggle list membership
 
+### Cleanup on Item Deletion
+
+When a tracked item is deleted (`DELETE_ITEM`), its `providerId` must be removed from all manual lists' `itemIds` arrays. This is handled in the storage service's `delete()` method to maintain data integrity — no orphaned IDs in lists.
+
 ### Message Types
 
 ```typescript
@@ -239,9 +248,12 @@ Collapsible panel below the search bar, toggled by a filter icon. Badge on the i
 
 ### Filter Sections
 
-1. **Format**: pill toggles — All / Manga / Manhwa / Manhua (mirrors existing tab bar)
-2. **Genres**: searchable chip picker, shows only genres present in tracked items
-3. **Tags**: same pattern, shows custom tags with their colors
+Format filtering remains in the existing `TabBar` component — it is **not** duplicated in the FilterPanel. The FilterPanel contains only:
+
+1. **Genres**: searchable chip picker, shows only genres present in tracked items
+2. **Tags**: same pattern, shows custom tags with their colors
+
+The TabBar format filter and FilterPanel genre/tag filters combine with AND logic (e.g. TabBar set to "Manhwa" + FilterPanel genre "Action" = Manhwa titles with Action genre).
 
 ### Tri-State Filter Chips
 
@@ -271,7 +283,7 @@ Selected filters show as dismissible chips above the results. "Clear all" link t
 
 ### Save as List
 
-Button at bottom of filter panel when >= 1 filter is active. Prompts for name, creates a smart list with current filter criteria.
+Button at bottom of filter panel when >= 1 filter is active. Prompts for name, creates a smart list with current filter criteria. The current TabBar format selection is also captured into the smart list's `formats` field, so smart lists can filter by format even though the FilterPanel itself doesn't include format controls.
 
 ### Persistence
 
@@ -328,7 +340,7 @@ Filters are session-only — reset on side panel close. Smart lists are the pers
 | `CREATE_LIST` | Panel → BG | Create manual or smart list |
 | `UPDATE_LIST` | Panel → BG | Rename, modify filters, add/remove items |
 | `DELETE_LIST` | Panel → BG | Delete list (items stay tracked) |
-| `BACKFILL_PROGRESS` | BG → Panel | Report genre backfill progress |
+| *(backfillProgress)* | *storage key* | Backfill progress via `chrome.storage.onChanged` |
 
 ## 9. Backward Compatibility
 
