@@ -147,6 +147,9 @@ export function useAddItem(onSuccess: () => void) {
         lastApiCheck: now,
         notificationsEnabled: false, // Off by default per user decision
         anilistStatus,
+        genres: result.genres ?? [],
+        tags: [],
+        genresBackfilled: true, // genres came from the search result
       }
 
       await saveItem(item)
