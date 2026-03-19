@@ -129,3 +129,9 @@
 .alt-names__add .edit-form__input {
   flex: 1;
 }
+
+/* Tags field — ensure color pickers aren't clipped */
+.edit-form__field:has(.tag-input) {
+  overflow: visible;
+  position: relative;
+}

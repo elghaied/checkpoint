@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { TrackedItem } from '@/shared/types'
+import { useCustomTags } from '../hooks/useCustomTags'
+import TagInput from './TagInput'
 import './EditModal.css'
 
 interface EditModalProps {
@@ -18,6 +20,8 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
   const [altNames, setAltNames] = useState<string[]>(item.titles.alt)
   const [newAltName, setNewAltName] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [editedTags, setEditedTags] = useState<string[]>(item.tags ?? [])
+  const { tags: tagRegistry, updateTag, getNextColor } = useCustomTags()
 
   const isProgressValid = progressValue === '' || /^\d+(\.\d+)?$/.test(progressValue.trim())
 
@@ -38,7 +42,27 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
       updates.format = format
     }
 
+    if (JSON.stringify(editedTags) !== JSON.stringify(item.tags ?? [])) {
+      updates.tags = editedTags
+    }
+
     onSave(updates)
+  }
+
+  const handleAddTag = async (name: string, color: string) => {
+    if (!editedTags.includes(name)) {
+      setEditedTags([...editedTags, name])
+    }
+    // Ensure the tag exists in the registry with this color
+    await updateTag(name, { color })
+  }
+
+  const handleRemoveTag = (name: string) => {
+    setEditedTags(editedTags.filter((t) => t !== name))
+  }
+
+  const handleUpdateTagColor = async (name: string, color: string) => {
+    await updateTag(name, { color })
   }
 
   const handleAddAltName = () => {
@@ -153,6 +177,18 @@ const EditModal: React.FC<EditModalProps> = ({ item, onSave, onDelete, onClose }
                   Add
                 </button>
               </div>
+            </div>
+
+            <div className="edit-form__field">
+              <label className="edit-form__label">Tags</label>
+              <TagInput
+                itemTags={editedTags}
+                tagRegistry={tagRegistry}
+                onAddTag={handleAddTag}
+                onRemoveTag={handleRemoveTag}
+                onUpdateTagColor={handleUpdateTagColor}
+                getNextColor={getNextColor}
+              />
             </div>
 
             <div className="edit-form__actions">

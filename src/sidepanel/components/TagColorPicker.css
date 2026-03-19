@@ -1,0 +1,33 @@
+.tag-color-picker {
+  position: absolute;
+  z-index: 10;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.tag-color-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.tag-color-picker__swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.tag-color-picker__swatch:hover {
+  transform: scale(1.2);
+}
+
+.tag-color-picker__swatch--active {
+  border-color: var(--text-primary);
+}
