@@ -5,6 +5,7 @@
   "description": "Track your manga, manhwa, and manhua reading progress",
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "activeTab",
     "sidePanel",
     "scripting",

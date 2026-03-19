@@ -209,6 +209,9 @@ export type MessageRequest =
   | { type: 'CREATE_LIST'; list: Omit<CustomList, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'UPDATE_LIST'; listId: string; updates: Partial<CustomList> }
   | { type: 'DELETE_LIST'; listId: string }
+  // CSV Import
+  | { type: 'IMPORT_SEARCH'; query: string; extractedTitle: string }
+  | { type: 'IMPORT_STATUS'; active: boolean }
 
 export type MessageResponse<T = unknown> =
   | { data: T }

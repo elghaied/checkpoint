@@ -36,3 +36,12 @@ export const DEFAULT_LIST_NAMES = ['Reading', 'Completed', 'Plan to Read']
 export const CUSTOM_TAGS_KEY = 'customTags'
 export const CUSTOM_LISTS_KEY = 'customLists'
 export const BACKFILL_PROGRESS_KEY = 'backfillProgress'
+
+// CSV Import
+export const IMPORT_CONFIDENCE_GREEN = 0.85
+export const IMPORT_CONFIDENCE_YELLOW = 0.50
+export const IMPORT_BATCH_CHECKPOINT_SIZE = 10
+export const IMPORT_RATE_LIMIT_PER_MINUTE = 75
+export const IMPORT_SESSION_KEY = 'importSession'
+export const PENDING_REVIEW_KEY = 'pendingReview'
+export const PENDING_REVIEW_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
