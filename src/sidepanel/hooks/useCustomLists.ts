@@ -3,22 +3,33 @@ import { getLists, createList, updateList, deleteList } from '../services/messag
 import { DEFAULT_LIST_NAMES } from '@/shared/constants'
 import type { CustomList } from '@/shared/types'
 
+async function fetchLists(): Promise<CustomList[]> {
+  let result = await getLists()
+  // Create default lists on first access
+  if (result.length === 0) {
+    for (const name of DEFAULT_LIST_NAMES) {
+      await createList({ name, type: 'manual', itemIds: [], filters: null })
+    }
+    result = await getLists()
+  }
+  return result
+}
+
 export function useCustomLists() {
   const [lists, setLists] = useState<CustomList[]>([])
 
-  const refresh = useCallback(async () => {
-    let result = await getLists()
-    // Create default lists on first access
-    if (result.length === 0) {
-      for (const name of DEFAULT_LIST_NAMES) {
-        await createList({ name, type: 'manual', itemIds: [], filters: null })
-      }
-      result = await getLists()
-    }
-    setLists(result)
+  useEffect(() => {
+    let cancelled = false
+    fetchLists().then(result => {
+      if (!cancelled) setLists(result)
+    }).catch(() => { /* ignore */ })
+    return () => { cancelled = true }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  const refresh = useCallback(async () => {
+    const result = await fetchLists()
+    setLists(result)
+  }, [])
 
   return {
     lists,

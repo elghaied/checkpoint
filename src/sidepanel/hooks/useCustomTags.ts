@@ -6,12 +6,18 @@ import type { CustomTagRegistry } from '@/shared/types'
 export function useCustomTags() {
   const [tags, setTags] = useState<CustomTagRegistry>({})
 
+  useEffect(() => {
+    let cancelled = false
+    getCustomTags().then(result => {
+      if (!cancelled) setTags(result)
+    }).catch(() => { /* ignore */ })
+    return () => { cancelled = true }
+  }, [])
+
   const refresh = useCallback(async () => {
     const result = await getCustomTags()
     setTags(result)
   }, [])
-
-  useEffect(() => { refresh() }, [refresh])
 
   const getNextColor = useCallback((): string => {
     const usedCount = Object.keys(tags).length
