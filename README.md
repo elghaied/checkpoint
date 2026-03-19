@@ -43,6 +43,7 @@
 - **Format tabs** - Filter by All, Manga (JP), Manhwa (KR), or Manhua (CN)
 - **Multi-provider search** - AniList primary, MangaDex fallback, with confidence scoring
 - **Alternative names** - Teach Checkpoint to recognize titles across different sites
+- **CSV bulk import** - Import hundreds of titles from a spreadsheet via a dedicated browser tab with batch matching, confidence-tiered review, and pause/resume
 - **Import / Export** - Back up and restore your full library including tags, lists, and settings
 - **Side panel UI** - Vertical navigation rail with connected tab design, always accessible without leaving your reading page
 - **100% local storage** - No accounts, no tracking, no analytics
@@ -69,11 +70,11 @@ New chapter detection relies on AniList and MangaDex APIs for chapter counts. Th
 
 ## Architecture
 
-Three execution contexts communicating via `chrome.runtime.sendMessage`:
+Four execution contexts communicating via `chrome.runtime.sendMessage`:
 
 ```
-Side Panel (React UI)
-       ↕
+Side Panel (React UI)     Import Tab (React UI)
+       ↕                         ↕
 Background Service Worker ← Alarms (hourly chapter checks)
        ↕                  ← AniList GraphQL API
 Content Script            ← MangaDex REST API
@@ -83,14 +84,16 @@ Content Script            ← MangaDex REST API
 | Context | Entry Point | Role |
 |---|---|---|
 | **Side Panel** | `src/sidepanel/main.tsx` | React UI - item list, search, edit, lists, tags, settings |
-| **Service Worker** | `src/background/index.ts` | Central hub - API calls, storage, message routing, chapter checking |
+| **Import Tab** | `src/import/main.tsx` | CSV bulk import - parse, batch match, review, confirm (dedicated browser tab) |
+| **Service Worker** | `src/background/index.ts` | Central hub - API calls, storage, message routing, chapter checking, rate limiting |
 | **Content Script** | `src/content/index.ts` | DOM parsing - extracts title and chapter via heuristics (IIFE-bundled) |
 
 ### Key Design Decisions
 
 - **Serialization queue** in storage layer prevents race conditions on concurrent mutations
 - **TTL cache** (5-min expiry, 100-entry limit) avoids redundant API calls
-- **Confidence scoring** uses Levenshtein distance with Jaccard token-overlap fallback; results below 0.7 threshold prompt user selection
+- **Confidence scoring** uses Levenshtein distance with Jaccard token-overlap fallback; results below 0.7 threshold prompt user selection (bulk import uses stricter 0.85/0.50 green/yellow thresholds)
+- **Sliding window rate limiter** enforces 75 requests/minute during CSV import to stay within AniList's 90/min ceiling
 - **Content script** is injected on-demand (not on every page) and bundled as IIFE to avoid ES module restrictions
 - **Genre backfill** populates genres for existing items on first load with dual-provider fallback (AniList → MangaDex and vice versa)
 - **Tri-state filter engine** evaluates AND/OR/Exclude logic per filter entry, composable across genres, tags, and format
@@ -99,15 +102,22 @@ Content Script            ← MangaDex REST API
 
 ```
 src/
-├── sidepanel/           # React UI
-│   ├── components/      # 20 components (NavRail, ItemCard, FilterPanel, EditModal, etc.)
-│   ├── hooks/           # useTrackedItems, useAddItem, useFilterPanel, useCustomTags, useCustomLists, etc.
+├── sidepanel/           # Side Panel React UI
+│   ├── components/      # 21 components (NavRail, ItemCard, FilterPanel, EditModal, ImportBanner, etc.)
+│   ├── hooks/           # useTrackedItems, useAddItem, useFilterPanel, useCustomTags, usePendingReview, etc.
 │   ├── services/        # Typed chrome.runtime.sendMessage wrapper
 │   └── styles/          # Global CSS with BEM design tokens
+├── import/              # CSV Import Tab (dedicated browser tab)
+│   ├── components/      # FileUpload, MatchProgress, ReviewTable, SimilarModal, ConfirmPanel
+│   ├── hooks/           # useImportSession, useBatchMatcher
+│   ├── services/        # Import-specific messaging wrapper
+│   ├── csvParser.ts     # PapaParse-based CSV parser with column detection
+│   └── confirmLogic.ts  # Tier classification, duplicate detection, diagnostic CSV export
 ├── background/          # Service Worker
 │   ├── index.ts         # Message router
 │   ├── searchService.ts # Multi-provider search with confidence scoring
 │   ├── chapterChecker.ts# Alarm-based batch chapter checking
+│   ├── rateLimiter.ts   # Sliding window rate limiter for import API calls
 │   ├── genreBackfill.ts # Genre backfill with dual-provider fallback
 │   ├── anilist.ts       # AniList GraphQL client
 │   ├── mangadex.ts      # MangaDex REST client
