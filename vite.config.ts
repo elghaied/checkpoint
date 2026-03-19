@@ -5,24 +5,35 @@ import { resolve } from 'path'
 import { copyFileSync, mkdirSync, existsSync, rmSync } from 'fs'
 import { build as esbuild } from 'esbuild'
 
-// Plugin to copy sidepanel HTML to correct location and clean up
-function copySidepanelHtml() {
+// Plugin to copy HTML entry points to correct locations and clean up
+function copyHtmlEntries() {
   return {
-    name: 'copy-sidepanel-html',
+    name: 'copy-html-entries',
     closeBundle() {
-      const srcPath = resolve(__dirname, 'dist/src/sidepanel/index.html')
-      const destDir = resolve(__dirname, 'dist/sidepanel')
-      const destPath = resolve(destDir, 'index.html')
+      const entries = [
+        { src: 'dist/src/sidepanel/index.html', dest: 'dist/sidepanel/index.html' },
+        { src: 'dist/src/import/index.html', dest: 'dist/import/index.html' },
+      ]
 
-      if (existsSync(srcPath)) {
-        if (!existsSync(destDir)) {
-          mkdirSync(destDir, { recursive: true })
+      for (const entry of entries) {
+        const srcPath = resolve(__dirname, entry.src)
+        const destDir = resolve(__dirname, entry.dest, '..')
+        const destPath = resolve(__dirname, entry.dest)
+
+        if (existsSync(srcPath)) {
+          if (!existsSync(destDir)) {
+            mkdirSync(destDir, { recursive: true })
+          }
+          copyFileSync(srcPath, destPath)
         }
-        copyFileSync(srcPath, destPath)
-        // Clean up the src folder
-        rmSync(resolve(__dirname, 'dist/src'), { recursive: true, force: true })
-        console.log('Copied sidepanel/index.html to correct location')
       }
+
+      // Clean up the src folder
+      const srcDir = resolve(__dirname, 'dist/src')
+      if (existsSync(srcDir)) {
+        rmSync(srcDir, { recursive: true, force: true })
+      }
+      console.log('Copied HTML entries to correct locations')
     }
   }
 }
@@ -64,7 +75,7 @@ export default defineConfig({
       include: ['src/shared/**', 'src/background/**', 'src/storage/**'],
     },
   },
-  plugins: [react(), copySidepanelHtml(), bundleContentScript()],
+  plugins: [react(), copyHtmlEntries(), bundleContentScript()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -76,11 +87,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
+        import: resolve(__dirname, 'src/import/index.html'),
         background: resolve(__dirname, 'src/background/index.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'background') return 'background/index.js'
+          if (chunkInfo.name === 'import') return 'import/[name]-[hash].js'
           return 'sidepanel/[name]-[hash].js'
         },
         chunkFileNames: 'chunks/[name]-[hash].js',
