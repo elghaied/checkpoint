@@ -1,0 +1,211 @@
+.tags-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tags-view__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--accent-glow), transparent) 1;
+}
+
+.tags-view__title {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+.tags-view__count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+.tags-view__content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.tags-view__empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* Tag list and row styles shared with SettingsPage tag section */
+.tags-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
+}
+
+.tag-row:hover {
+  border-color: var(--accent-glow);
+}
+
+.tag-row__pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tag-row__color-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.tag-row__color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tag-row__color-dot:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.tag-row__color-picker-wrap {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+}
+
+.tag-row__name {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.tag-row__name:hover {
+  color: var(--accent);
+}
+
+.tag-row__rename-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  font-family: inherit;
+}
+
+.tag-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.tag-row__delete {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.tag-row__delete:hover {
+  color: var(--danger, #f87171);
+  background: color-mix(in srgb, var(--danger, #f87171) 12%, transparent);
+}
+
+.tag-row__confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-row__confirm-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tag-row__confirm-btn {
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--surface-border);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+.tag-row__confirm-btn--yes {
+  background: color-mix(in srgb, var(--danger, #f87171) 15%, transparent);
+  color: var(--danger, #f87171);
+  border-color: var(--danger, #f87171);
+}
+
+.tag-row__confirm-btn--yes:hover {
+  background: var(--danger, #f87171);
+  color: #fff;
+}
+
+.tag-row__confirm-btn--no {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.tag-row__confirm-btn--no:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}

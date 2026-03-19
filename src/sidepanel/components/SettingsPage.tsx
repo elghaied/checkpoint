@@ -1,30 +1,21 @@
 import { useState, useRef } from 'react'
 import { useSettings } from '../hooks/useSettings'
-import { useCustomTags } from '../hooks/useCustomTags'
 import { exportData, importData, checkForUpdates } from '../services/messaging'
 import type { ExportedData, ImportResult } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
-import TagColorPicker from './TagColorPicker'
 import './SettingsPage.css'
 
 const log = createLogger('app')
 
 interface SettingsPageProps {
-  onBack: () => void
+  onBack?: () => void
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const { settings, loading, updateSettings } = useSettings()
-  const { tags, updateTag, deleteTag } = useCustomTags()
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Tags management state
-  const [renamingTag, setRenamingTag] = useState<string | null>(null)
-  const [renameValue, setRenameValue] = useState('')
-  const [colorPickerTag, setColorPickerTag] = useState<string | null>(null)
-  const [deletingTag, setDeletingTag] = useState<string | null>(null)
 
   const handleExport = async () => {
     try {
@@ -72,47 +63,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     }
   }
 
-  const handleRenameStart = (name: string) => {
-    setRenamingTag(name)
-    setRenameValue(name)
-    setColorPickerTag(null)
-    setDeletingTag(null)
-  }
-
-  const handleRenameCommit = async () => {
-    if (!renamingTag) return
-    const trimmed = renameValue.trim()
-    if (trimmed && trimmed !== renamingTag) {
-      await updateTag(renamingTag, { newName: trimmed })
-    }
-    setRenamingTag(null)
-    setRenameValue('')
-  }
-
-  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleRenameCommit()
-    else if (e.key === 'Escape') {
-      setRenamingTag(null)
-      setRenameValue('')
-    }
-  }
-
-  const handleColorSelect = async (name: string, color: string) => {
-    await updateTag(name, { color })
-    setColorPickerTag(null)
-  }
-
-  const handleDeleteRequest = (name: string) => {
-    setDeletingTag(name)
-    setColorPickerTag(null)
-    setRenamingTag(null)
-  }
-
-  const handleDeleteConfirm = async (name: string) => {
-    await deleteTag(name)
-    setDeletingTag(null)
-  }
-
   const handleCheckNow = async () => {
     try {
       setIsChecking(true)
@@ -128,11 +78,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     return (
       <div className="settings-page">
         <div className="settings-page__header">
-          <button className="settings-page__back" onClick={onBack}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-            </svg>
-          </button>
+          {onBack && (
+            <button className="settings-page__back" onClick={onBack}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+              </svg>
+            </button>
+          )}
           <h1 className="settings-page__title">Settings</h1>
         </div>
         <div className="settings-page__content">
@@ -145,11 +97,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   return (
     <div className="settings-page">
       <div className="settings-page__header">
-        <button className="settings-page__back" onClick={onBack}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-          </svg>
-        </button>
+        {onBack && (
+          <button className="settings-page__back" onClick={onBack}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+          </button>
+        )}
         <h1 className="settings-page__title">Settings</h1>
       </div>
 
@@ -227,103 +181,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
           >
             {isChecking ? 'Checking...' : 'Check for updates now'}
           </button>
-        </div>
-
-        {/* Tags Section */}
-        <div className="settings-section">
-          <h2 className="settings-section__title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.37.86.58 1.41.58s1.05-.21 1.41-.58l7-7c.37-.36.59-.86.59-1.42 0-.57-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
-            Tags
-          </h2>
-
-          {Object.keys(tags).length === 0 ? (
-            <div className="tags-empty">
-              No tags created yet. Add tags from any item's edit screen.
-            </div>
-          ) : (
-            <ul className="tags-list">
-              {Object.entries(tags).map(([name, tag]) => (
-                <li key={name} className="tag-row">
-                  <div className="tag-row__pill">
-                    {/* Color dot — click to open picker */}
-                    <div className="tag-row__color-wrap">
-                      <button
-                        type="button"
-                        className="tag-row__color-dot"
-                        style={{ backgroundColor: tag.color }}
-                        onClick={() => setColorPickerTag(colorPickerTag === name ? null : name)}
-                        aria-label={`Change color for ${name}`}
-                      />
-                      {colorPickerTag === name && (
-                        <div className="tag-row__color-picker-wrap">
-                          <TagColorPicker
-                            currentColor={tag.color}
-                            onSelect={(color) => handleColorSelect(name, color)}
-                            onClose={() => setColorPickerTag(null)}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tag name — click to rename */}
-                    {renamingTag === name ? (
-                      <input
-                        className="tag-row__rename-input"
-                        value={renameValue}
-                        autoFocus
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onBlur={handleRenameCommit}
-                        onKeyDown={handleRenameKeyDown}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className="tag-row__name"
-                        onClick={() => handleRenameStart(name)}
-                        title="Click to rename"
-                      >
-                        {name}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Delete */}
-                  <div className="tag-row__actions">
-                    {deletingTag === name ? (
-                      <div className="tag-row__confirm">
-                        <span className="tag-row__confirm-label">Delete?</span>
-                        <button
-                          type="button"
-                          className="tag-row__confirm-btn tag-row__confirm-btn--yes"
-                          onClick={() => handleDeleteConfirm(name)}
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          className="tag-row__confirm-btn tag-row__confirm-btn--no"
-                          onClick={() => setDeletingTag(null)}
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="tag-row__delete"
-                        onClick={() => handleDeleteRequest(name)}
-                        aria-label={`Delete tag ${name}`}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         {/* Data Section */}
