@@ -6,7 +6,7 @@ import { FileUpload } from './components/FileUpload'
 import { MatchProgress } from './components/MatchProgress'
 import { ReviewTable } from './components/ReviewTable'
 import { ConfirmPanel } from './components/ConfirmPanel'
-import type { ImportRow } from '@/shared/importTypes'
+import type { ImportRow, ImportSession, PendingReviewList } from '@/shared/importTypes'
 
 export function App() {
   const [importResult, setImportResult] = useState<{ added: number; updated: number; skipped: number } | null>(null)
@@ -157,29 +157,78 @@ export function App() {
     )
   }
 
+  const resumePendingReview = (pending: PendingReviewList) => {
+    const rows: ImportRow[] = pending.items.map((item, i) => ({
+      index: i,
+      csvTitle: item.csvTitle,
+      csvChapter: item.csvChapter,
+      csvUrl: item.csvUrl,
+      csvTags: item.csvTags,
+      matchStatus: 'matched' as const,
+      matchTier: item.tier,
+      bestMatch: item.bestMatch,
+      alternatives: item.alternatives,
+      confidenceScore: item.confidenceScore,
+      duplicateOf: null,
+      duplicateConflict: null,
+      userSelection: null,
+      userSkipped: false,
+    }))
+
+    const session: ImportSession = {
+      id: crypto.randomUUID(),
+      phase: 'review',
+      createdAt: Date.now(),
+      lastActivityAt: Date.now(),
+      csvSummary: {
+        totalRows: rows.length,
+        withChapters: rows.filter((r) => r.csvChapter !== null).length,
+        withUrls: rows.filter((r) => r.csvUrl !== null).length,
+        withTags: rows.filter((r) => r.csvTags.length > 0).length,
+      },
+      rows,
+    }
+
+    clearPendingReview()
+    saveSession(session)
+  }
+
   // No session — show file upload (with pending review banner if applicable)
   return (
     <div className={styles.container}>
       {pendingReview && pendingReview.items.length > 0 && (
         <div style={{
           padding: '12px 16px', background: '#1a2a3a', borderRadius: 8,
-          marginBottom: 16, display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', fontSize: 13, color: '#60a5fa',
+          marginBottom: 16, fontSize: 13, color: '#60a5fa',
         }}>
-          <span>{pendingReview.items.length} titles pending review from a previous import</span>
-          <button
-            onClick={() => {
-              if (confirm(`Discard ${pendingReview.items.length} unreviewed titles? This can't be undone.`)) {
-                clearPendingReview()
-              }
-            }}
-            style={{
-              fontSize: 12, color: '#888', background: 'none',
-              border: 'none', cursor: 'pointer', padding: '2px 6px',
-            }}
-          >
-            Dismiss
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{pendingReview.items.length} titles pending review from a previous import</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => resumePendingReview(pendingReview)}
+                style={{
+                  fontSize: 12, color: '#60a5fa', background: 'none',
+                  border: '1px solid rgba(96,165,250,0.3)', borderRadius: 4,
+                  cursor: 'pointer', padding: '4px 10px',
+                }}
+              >
+                Review
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Discard ${pendingReview.items.length} unreviewed titles? This can't be undone.`)) {
+                    clearPendingReview()
+                  }
+                }}
+                style={{
+                  fontSize: 12, color: '#888', background: 'none',
+                  border: 'none', cursor: 'pointer', padding: '4px 6px',
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <FileUpload
