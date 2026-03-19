@@ -110,7 +110,7 @@ const ListsView: React.FC<ListsViewProps> = ({
                   )}
                 </div>
 
-                <div className="lists-view__item-body" onClick={(e) => e.stopPropagation()}>
+                <div className="lists-view__item-body">
                   {isRenaming ? (
                     <input
                       ref={renameInputRef}
@@ -124,16 +124,7 @@ const ListsView: React.FC<ListsViewProps> = ({
                       }}
                     />
                   ) : (
-                    <span
-                      className="lists-view__item-name"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setRenamingId(list.id)
-                        setRenameValue(list.name)
-                        setConfirmingDelete(null)
-                      }}
-                      title="Click to rename"
-                    >
+                    <span className="lists-view__item-name">
                       {list.name}
                     </span>
                   )}
@@ -144,6 +135,19 @@ const ListsView: React.FC<ListsViewProps> = ({
 
                 <div className="lists-view__item-actions" onClick={(e) => e.stopPropagation()}>
                   <button
+                    className="lists-view__rename-btn"
+                    onClick={() => {
+                      setRenamingId(list.id)
+                      setRenameValue(list.name)
+                      setConfirmingDelete(null)
+                    }}
+                    title="Rename list"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                  </button>
+                  <button
                     className={`lists-view__delete-btn${isConfirmingDelete ? ' lists-view__delete-btn--confirm' : ''}`}
                     onClick={(e) => handleDeleteClick(e, list.id)}
                     title={isConfirmingDelete ? 'Confirm delete' : 'Delete list'}
@@ -153,15 +157,6 @@ const ListsView: React.FC<ListsViewProps> = ({
                         <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                       </svg>
                     )}
-                  </button>
-                  <button
-                    className="lists-view__open-btn"
-                    onClick={(e) => { e.stopPropagation(); handleRowClick(list) }}
-                    title="Open list"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-                    </svg>
                   </button>
                 </div>
               </li>
