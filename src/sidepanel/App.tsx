@@ -14,6 +14,9 @@ import ListDetail from './components/ListDetail'
 import ListItemPicker from './components/ListItemPicker'
 import { FilterPanel } from './components/FilterPanel'
 import { BackfillIndicator } from './components/BackfillIndicator'
+import NavRail from './components/NavRail'
+import type { NavView } from './components/NavRail'
+import TagsView from './components/TagsView'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { useCustomLists } from './hooks/useCustomLists'
@@ -26,10 +29,8 @@ import type { FilterState } from './hooks/useFilterPanel'
 
 const log = createLogger('app')
 
-type View = 'list' | 'settings' | 'lists'
-
 export default function App() {
-  const [view, setView] = useState<View>('list')
+  const [view, setView] = useState<NavView>('general')
   const [activeTab, setActiveTab] = useState<TabValue>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -202,27 +203,18 @@ export default function App() {
 
   const isAddLoading = ['extracting', 'searching', 'saving'].includes(addItem.status)
 
-  // Settings page view
-  if (view === 'settings') {
-    return (
-      <ErrorBoundary>
-        <div className="app">
-          <SettingsPage onBack={() => setView('list')} />
-        </div>
-      </ErrorBoundary>
-    )
-  }
+  const renderContent = () => {
+    if (view === 'settings') {
+      return <SettingsPage />
+    }
 
-  // Lists view
-  if (view === 'lists') {
-    return (
-      <ErrorBoundary>
-        <div className="app">
-          <Header
-            onSettingsClick={() => setView('settings')}
-            onListsClick={() => { setView('list'); setSelectedList(null) }}
-            count={items.length}
-          />
+    if (view === 'tags') {
+      return <TagsView />
+    }
+
+    if (view === 'lists') {
+      return (
+        <>
           {selectedList ? (
             <ListDetail
               list={selectedList}
@@ -237,7 +229,7 @@ export default function App() {
                     tags: selectedList.filters.tags,
                   })
                   filterPanel.setIsOpen(true)
-                  setView('list')
+                  setView('general')
                   setSelectedList(null)
                 }
               }}
@@ -281,114 +273,120 @@ export default function App() {
               <button onClick={handleUndo}>Undo</button>
             </div>
           )}
-        </div>
-      </ErrorBoundary>
+        </>
+      )
+    }
+
+    // general view
+    return (
+      <>
+        {connectionError && (
+          <div className="connection-banner">{connectionError}</div>
+        )}
+        {backfillProgress && (
+          <BackfillIndicator progress={backfillProgress} />
+        )}
+        <main className="main">
+          <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
+          <div className="search-filter-row">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            <button
+              className={`filter-toggle${filterPanel.isOpen ? ' filter-toggle--active' : ''}${filterPanel.activeFilterCount > 0 ? ' filter-toggle--has-filters' : ''}`}
+              onClick={() => filterPanel.setIsOpen((o) => !o)}
+              title="Toggle filters"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/>
+              </svg>
+              {filterPanel.activeFilterCount > 0 && (
+                <span className="filter-toggle__badge">{filterPanel.activeFilterCount}</span>
+              )}
+            </button>
+          </div>
+          <FilterPanel
+            isOpen={filterPanel.isOpen}
+            genres={filterPanel.availableGenres}
+            tags={filterPanel.availableTags}
+            tagRegistry={tagRegistry}
+            genreFilters={filterPanel.filters.genres}
+            tagFilters={filterPanel.filters.tags}
+            onToggleGenre={filterPanel.toggleGenre}
+            onToggleTag={filterPanel.toggleTag}
+            onClear={filterPanel.clearFilters}
+            onSaveAsList={handleSaveAsList}
+            activeFilterCount={filterPanel.activeFilterCount}
+            filteredCount={filteredItems.length}
+            totalCount={items.length}
+            currentFilters={filterPanel.getSmartListFilters()}
+          />
+          <ItemList
+            key={activeTab}
+            items={displayItems}
+            loading={loading}
+            error={error}
+            onRetry={refresh}
+            onEdit={handleEdit}
+            onOpen={handleOpen}
+            onRefresh={refresh}
+          />
+          {addItem.status === 'error' && (
+            <div className="toast toast--error">
+              {addItem.error}
+              <button onClick={addItem.reset}>&times;</button>
+            </div>
+          )}
+          {addItem.status === 'success' && (
+            <div className="toast toast--success">
+              Added successfully!
+            </div>
+          )}
+          {pendingDelete && (
+            <div className="toast toast--undo">
+              <span>Deleted &ldquo;{pendingDelete.item.titles.main}&rdquo;</span>
+              <button onClick={handleUndo}>Undo</button>
+            </div>
+          )}
+        </main>
+        <AddButton
+          onClick={addItem.startAdd}
+          loading={isAddLoading}
+          disabled={isAddLoading}
+        />
+        {(addItem.status === 'selecting' || (addItem.status === 'searching' && addItem.searchResults !== null)) && (
+          <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={addItem.cancelSelection}>Close</button></div>}>
+            <SearchModal
+              results={addItem.searchResults || []}
+              originalTitle={addItem.originalExtractedTitle}
+              isSearching={addItem.status === 'searching'}
+              onSelect={addItem.selectResult}
+              onSearch={addItem.searchManually}
+              onCancel={addItem.cancelSelection}
+            />
+          </ErrorBoundary>
+        )}
+        {editingItem && (
+          <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={() => setEditingItem(null)}>Close</button></div>}>
+            <EditModal
+              item={editingItem}
+              onSave={handleSaveEdit}
+              onDelete={handleDelete}
+              onClose={() => setEditingItem(null)}
+            />
+          </ErrorBoundary>
+        )}
+      </>
     )
   }
 
   return (
     <ErrorBoundary>
-    <div className="app">
-      <Header
-        onSettingsClick={() => setView('settings')}
-        onListsClick={() => setView('lists')}
-        count={items.length}
-      />
-      {connectionError && (
-        <div className="connection-banner">{connectionError}</div>
-      )}
-      {backfillProgress && (
-        <BackfillIndicator progress={backfillProgress} />
-      )}
-      <main className="main">
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
-        <div className="search-filter-row">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
-          <button
-            className={`filter-toggle${filterPanel.isOpen ? ' filter-toggle--active' : ''}${filterPanel.activeFilterCount > 0 ? ' filter-toggle--has-filters' : ''}`}
-            onClick={() => filterPanel.setIsOpen((o) => !o)}
-            title="Toggle filters"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/>
-            </svg>
-            {filterPanel.activeFilterCount > 0 && (
-              <span className="filter-toggle__badge">{filterPanel.activeFilterCount}</span>
-            )}
-          </button>
+      <div className="app">
+        <div className="app__content">
+          <Header count={items.length} />
+          {renderContent()}
         </div>
-        <FilterPanel
-          isOpen={filterPanel.isOpen}
-          genres={filterPanel.availableGenres}
-          tags={filterPanel.availableTags}
-          tagRegistry={tagRegistry}
-          genreFilters={filterPanel.filters.genres}
-          tagFilters={filterPanel.filters.tags}
-          onToggleGenre={filterPanel.toggleGenre}
-          onToggleTag={filterPanel.toggleTag}
-          onClear={filterPanel.clearFilters}
-          onSaveAsList={handleSaveAsList}
-          activeFilterCount={filterPanel.activeFilterCount}
-          filteredCount={filteredItems.length}
-          totalCount={items.length}
-          currentFilters={filterPanel.getSmartListFilters()}
-        />
-        <ItemList
-          key={activeTab}
-          items={displayItems}
-          loading={loading}
-          error={error}
-          onRetry={refresh}
-          onEdit={handleEdit}
-          onOpen={handleOpen}
-          onRefresh={refresh}
-        />
-        {addItem.status === 'error' && (
-          <div className="toast toast--error">
-            {addItem.error}
-            <button onClick={addItem.reset}>&times;</button>
-          </div>
-        )}
-        {addItem.status === 'success' && (
-          <div className="toast toast--success">
-            Added successfully!
-          </div>
-        )}
-        {pendingDelete && (
-          <div className="toast toast--undo">
-            <span>Deleted &ldquo;{pendingDelete.item.titles.main}&rdquo;</span>
-            <button onClick={handleUndo}>Undo</button>
-          </div>
-        )}
-      </main>
-      <AddButton
-        onClick={addItem.startAdd}
-        loading={isAddLoading}
-        disabled={isAddLoading}
-      />
-      {(addItem.status === 'selecting' || (addItem.status === 'searching' && addItem.searchResults !== null)) && (
-        <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={addItem.cancelSelection}>Close</button></div>}>
-          <SearchModal
-            results={addItem.searchResults || []}
-            originalTitle={addItem.originalExtractedTitle}
-            isSearching={addItem.status === 'searching'}
-            onSelect={addItem.selectResult}
-            onSearch={addItem.searchManually}
-            onCancel={addItem.cancelSelection}
-          />
-        </ErrorBoundary>
-      )}
-      {editingItem && (
-        <ErrorBoundary fallback={<div className="modal-error">Failed to load. <button onClick={() => setEditingItem(null)}>Close</button></div>}>
-          <EditModal
-            item={editingItem}
-            onSave={handleSaveEdit}
-            onDelete={handleDelete}
-            onClose={() => setEditingItem(null)}
-          />
-        </ErrorBoundary>
-      )}
-    </div>
+        <NavRail activeView={view} onViewChange={setView} />
+      </div>
     </ErrorBoundary>
   )
 }

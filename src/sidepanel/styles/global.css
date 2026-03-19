@@ -74,7 +74,14 @@ body {
 }
 
 .app {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+.app__content {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
