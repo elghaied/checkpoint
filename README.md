@@ -36,11 +36,15 @@
 - **One-click tracking** - Add your current page and auto-detect title + chapter
 - **Smart progress** - Re-adding a title automatically updates to the higher chapter
 - **New chapter notifications** - Background checks with configurable intervals and per-title toggles
+- **Genre metadata** - Auto-fetched from AniList and MangaDex, displayed on cards and in edit view
+- **Custom tags** - Create freeform tags with auto-assigned colors, autocomplete, and a color picker
+- **Custom lists** - Organize titles into manual lists (hand-picked) or smart lists (saved filter criteria)
+- **Advanced filtering** - Tri-state filter panel (must include / any of / exclude) for genres and tags, combinable with format tabs
 - **Format tabs** - Filter by All, Manga (JP), Manhwa (KR), or Manhua (CN)
 - **Multi-provider search** - AniList primary, MangaDex fallback, with confidence scoring
 - **Alternative names** - Teach Checkpoint to recognize titles across different sites
-- **Import / Export** - Back up and restore your full tracking library
-- **Side panel UI** - Always accessible without leaving your reading page
+- **Import / Export** - Back up and restore your full library including tags, lists, and settings
+- **Side panel UI** - Vertical navigation rail with connected tab design, always accessible without leaving your reading page
 - **100% local storage** - No accounts, no tracking, no analytics
 
 ## Supported Sites
@@ -56,7 +60,7 @@ New chapter detection relies on AniList and MangaDex APIs for chapter counts. Th
 | Layer | Technology |
 |---|---|
 | **Extension** | Chrome Manifest V3, Side Panel API |
-| **UI** | React 19, CSS Modules |
+| **UI** | React 19, BEM CSS |
 | **Language** | TypeScript (strict mode) |
 | **Build** | Vite + custom esbuild plugin for content script IIFE bundling |
 | **APIs** | AniList GraphQL, MangaDex REST |
@@ -78,7 +82,7 @@ Content Script            ← MangaDex REST API
 
 | Context | Entry Point | Role |
 |---|---|---|
-| **Side Panel** | `src/sidepanel/main.tsx` | React UI - item list, search, edit, settings |
+| **Side Panel** | `src/sidepanel/main.tsx` | React UI - item list, search, edit, lists, tags, settings |
 | **Service Worker** | `src/background/index.ts` | Central hub - API calls, storage, message routing, chapter checking |
 | **Content Script** | `src/content/index.ts` | DOM parsing - extracts title and chapter via heuristics (IIFE-bundled) |
 
@@ -88,20 +92,23 @@ Content Script            ← MangaDex REST API
 - **TTL cache** (5-min expiry, 100-entry limit) avoids redundant API calls
 - **Confidence scoring** uses Levenshtein distance with Jaccard token-overlap fallback; results below 0.7 threshold prompt user selection
 - **Content script** is injected on-demand (not on every page) and bundled as IIFE to avoid ES module restrictions
+- **Genre backfill** populates genres for existing items on first load with dual-provider fallback (AniList → MangaDex and vice versa)
+- **Tri-state filter engine** evaluates AND/OR/Exclude logic per filter entry, composable across genres, tags, and format
 
 ### Project Structure
 
 ```
 src/
 ├── sidepanel/           # React UI
-│   ├── components/      # 11 components (Header, ItemCard, SearchModal, EditModal, etc.)
-│   ├── hooks/           # useTrackedItems, useAddItem, useSettings
+│   ├── components/      # 20 components (NavRail, ItemCard, FilterPanel, EditModal, etc.)
+│   ├── hooks/           # useTrackedItems, useAddItem, useFilterPanel, useCustomTags, useCustomLists, etc.
 │   ├── services/        # Typed chrome.runtime.sendMessage wrapper
-│   └── styles/          # CSS Modules per component
+│   └── styles/          # Global CSS with BEM design tokens
 ├── background/          # Service Worker
 │   ├── index.ts         # Message router
 │   ├── searchService.ts # Multi-provider search with confidence scoring
 │   ├── chapterChecker.ts# Alarm-based batch chapter checking
+│   ├── genreBackfill.ts # Genre backfill with dual-provider fallback
 │   ├── anilist.ts       # AniList GraphQL client
 │   ├── mangadex.ts      # MangaDex REST client
 │   ├── cache.ts         # TTLCache with LRU eviction
@@ -109,7 +116,7 @@ src/
 ├── content/             # Content Script (IIFE)
 │   ├── index.ts         # Message listener
 │   └── metadata.ts      # DOM parsing (og:title, h1, chapter regex)
-├── shared/              # Shared types, utils, constants, logger
+├── shared/              # Shared types, utils, constants, logger, filter engine
 └── storage/             # Storage abstraction with serialization queue
 ```
 
