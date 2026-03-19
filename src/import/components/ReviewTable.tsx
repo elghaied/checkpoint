@@ -138,8 +138,10 @@ const tdBaseStyle: React.CSSProperties = {
   verticalAlign: 'middle',
 }
 
-function tierDotStyle(tier: MatchTier | null, isDuplicate: boolean): React.CSSProperties {
-  const color = isDuplicate
+function tierDotStyle(tier: MatchTier | null, isDuplicate: boolean, isSkipped: boolean): React.CSSProperties {
+  const color = isSkipped
+    ? '#666'
+    : isDuplicate
     ? '#60a5fa'
     : tier === 'green'
     ? '#4ade80'
@@ -206,6 +208,7 @@ function scoreColor(score: number | null, tier: MatchTier | null): string {
 }
 
 function actionLabel(row: ImportRow): string {
+  if (row.userSkipped) return 'Undo Skip'
   if (row.duplicateOf) return 'Resolve'
   if (row.matchTier === 'green') return 'Similar'
   if (row.matchTier === 'yellow') return 'Review'
@@ -276,18 +279,18 @@ const emptyStyle: React.CSSProperties = {
 
 type SortKey = 'title' | 'score'
 type SortDir = 'asc' | 'desc'
-type TierFilter = 'green' | 'yellow' | 'red' | 'duplicates'
+type TierFilter = 'green' | 'yellow' | 'red' | 'duplicates' | 'skipped'
 
 function computeCounts(rows: ImportRow[]) {
-  let green = 0, yellow = 0, red = 0, duplicates = 0
+  let green = 0, yellow = 0, red = 0, duplicates = 0, skipped = 0
   for (const row of rows) {
-    if (row.userSkipped) continue
+    if (row.userSkipped) { skipped++; continue }
     if (row.duplicateOf) duplicates++
     if (row.matchTier === 'green') green++
     else if (row.matchTier === 'yellow') yellow++
     else if (row.matchTier === 'red') red++
   }
-  return { green, yellow, red, duplicates }
+  return { green, yellow, red, duplicates, skipped }
 }
 
 function getConflictNote(row: ImportRow): string | null {
@@ -319,19 +322,20 @@ export function ReviewTable({ session, onRowUpdate, onContinue, onRetryFailed }:
 
   const counts = computeCounts(session.rows)
 
-  // Filter rows: hide userSkipped, apply tier/text filters
+  // Filter rows: apply tier/text/skipped filters
   const filteredRows = session.rows
     .filter((row) => {
-      if (row.userSkipped) return false
-      // Tier/duplicate filter
+      // When filters are active, only show matching categories
       if (activeFilters.size > 0) {
         const isDuplicate = Boolean(row.duplicateOf)
+        const isSkipped = row.userSkipped
         const matchesDup = activeFilters.has('duplicates') && isDuplicate
-        const matchesTier =
+        const matchesSkipped = activeFilters.has('skipped') && isSkipped
+        const matchesTier = !isSkipped && (
           (activeFilters.has('green') && row.matchTier === 'green') ||
           (activeFilters.has('yellow') && row.matchTier === 'yellow') ||
-          (activeFilters.has('red') && row.matchTier === 'red')
-        if (!matchesDup && !matchesTier) return false
+          (activeFilters.has('red') && row.matchTier === 'red'))
+        if (!matchesDup && !matchesTier && !matchesSkipped) return false
       }
       // Text filter
       if (textFilter.trim()) {
@@ -418,6 +422,12 @@ export function ReviewTable({ session, onRowUpdate, onContinue, onRetryFailed }:
           <span style={{ ...tileValueStyle, color: '#60a5fa' }}>{counts.duplicates}</span>
           <span style={tileLabelStyle}>Duplicates</span>
         </div>
+        {counts.skipped > 0 && (
+          <div style={summaryTileStyle('rgba(102, 102, 102, 0.12)')}>
+            <span style={{ ...tileValueStyle, color: '#888' }}>{counts.skipped}</span>
+            <span style={tileLabelStyle}>Skipped</span>
+          </div>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -458,6 +468,17 @@ export function ReviewTable({ session, onRowUpdate, onContinue, onRetryFailed }:
         >
           Duplicates
         </span>
+        {counts.skipped > 0 && (
+          <span
+            style={pillStyle(activeFilters.has('skipped'), '#888')}
+            onClick={() => toggleFilter('skipped')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter') toggleFilter('skipped') }}
+          >
+            Skipped
+          </span>
+        )}
         <input
           type="text"
           style={searchInputStyle}
@@ -505,10 +526,10 @@ export function ReviewTable({ session, onRowUpdate, onContinue, onRetryFailed }:
                 const conflictNote = getConflictNote(row)
 
                 return (
-                  <tr key={row.index} style={trStyle(i)}>
+                  <tr key={row.index} style={{ ...trStyle(i), ...(row.userSkipped ? { opacity: 0.5 } : {}) }}>
                     {/* Status dot */}
                     <td style={{ ...tdBaseStyle, textAlign: 'center' }}>
-                      <span style={tierDotStyle(row.matchTier, isDuplicate)} />
+                      <span style={tierDotStyle(row.matchTier, isDuplicate, row.userSkipped)} />
                     </td>
 
                     {/* CSV Title */}
@@ -590,8 +611,16 @@ export function ReviewTable({ session, onRowUpdate, onContinue, onRetryFailed }:
                     {/* Action */}
                     <td style={tdBaseStyle}>
                       <button
-                        style={actionBtnStyle(row.matchTier, isDuplicate)}
-                        onClick={() => setModalRow(row)}
+                        style={row.userSkipped
+                          ? { ...actionBtnStyle(row.matchTier, isDuplicate), color: '#888', borderColor: '#444' }
+                          : actionBtnStyle(row.matchTier, isDuplicate)}
+                        onClick={() => {
+                          if (row.userSkipped) {
+                            onRowUpdate(row.index, { userSkipped: false })
+                          } else {
+                            setModalRow(row)
+                          }
+                        }}
                       >
                         {actionLabel(row)}
                       </button>
