@@ -1,0 +1,25 @@
+.genre-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.genre-badges__pill {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.genre-badges__more {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 1px 4px;
+}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TrackedItem } from '@/shared/types'
 import { toggleItemNotifications } from '../services/messaging'
 import { createLogger } from '@/shared/logger'
+import { GenreBadges } from './GenreBadges'
 import './ItemCard.css'
 
 const log = createLogger('app')
@@ -86,6 +87,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
             )}
           </button>
         </div>
+        <GenreBadges genres={item.genres} />
         <div className="item-card__progress-row">
           <p className="item-card__progress">{progressLabel}</p>
           {chaptersAhead > 0 && (
