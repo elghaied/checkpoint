@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getCustomTags, updateCustomTags, deleteCustomTag as deleteTagMsg } from '../services/messaging'
-import { TAG_COLORS, CUSTOM_TAGS_KEY } from '@/shared/constants'
+import { CUSTOM_TAGS_KEY } from '@/shared/constants'
+import { getNextTagColor } from '@/shared/tagColors'
 import type { CustomTagRegistry } from '@/shared/types'
 
 export function useCustomTags() {
@@ -31,8 +32,7 @@ export function useCustomTags() {
   }, [])
 
   const getNextColor = useCallback((): string => {
-    const usedCount = Object.keys(tags).length
-    return TAG_COLORS[usedCount % TAG_COLORS.length]
+    return getNextTagColor(tags)
   }, [tags])
 
   const updateTag = useCallback(async (name: string, updates: { color?: string; newName?: string }) => {
