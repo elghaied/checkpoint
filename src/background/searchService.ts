@@ -1,7 +1,8 @@
-import type { AniListMedia, MangaDexMedia, UnifiedSearchResult } from '@/shared/types'
-import { cleanSearchQuery, getFormat, getFormatFromLanguage } from '@/shared/utils'
+import type { AniListMedia, MangaDexMedia, ComicKMedia, UnifiedSearchResult } from '@/shared/types'
+import { cleanSearchQuery, getFormat, getFormatFromLanguage, getFormatFromCountry, mapComickStatus } from '@/shared/utils'
 import { searchAniList, collectTitles, normalise, scorePair } from './anilist'
 import { searchMangaDex } from './mangadex'
+import { searchComicK, CloudflareBlockError } from './comick'
 import { CONFIDENCE_THRESHOLD, MAX_LOW_CONFIDENCE_RESULTS } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
 
@@ -84,8 +85,46 @@ function normalizeMangaDexResults(
 }
 
 /**
- * Search with fallback: AniList first, then MangaDex if no valid matches.
- * Returns results that meet the confidence threshold from either provider.
+ * Convert ComicK results to unified format with confidence scores.
+ */
+function normalizeComicKResults(
+  results: ComicKMedia[],
+  extractedTitle: string
+): UnifiedSearchResult[] {
+  return results.map((media) => {
+    const confidence = calculateConfidence(extractedTitle, [media.title, ...media.altTitles])
+
+    return {
+      provider: 'comick' as const,
+      id: media.hid,
+      title: {
+        primary: media.title,
+        alt: media.altTitles,
+      },
+      coverUrl: media.coverUrl,
+      format: getFormatFromCountry(media.country),
+      status: mapComickStatus(media.status),
+      chapters: media.lastChapter,
+      genres: media.genres,
+      confidence,
+      originalData: media,
+    }
+  })
+}
+
+/**
+ * Filter normalized results to those meeting the confidence threshold.
+ * Returns sorted array (descending confidence) or null if none pass.
+ */
+function tryProvider(normalized: UnifiedSearchResult[]): UnifiedSearchResult[] | null {
+  const valid = normalized.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
+  if (valid.length === 0) return null
+  return valid.sort((a, b) => b.confidence - a.confidence)
+}
+
+/**
+ * Search with fallback: ComicK first, then AniList, then MangaDex if no valid matches.
+ * Returns results that meet the confidence threshold from whichever provider succeeds first.
  */
 export async function searchWithFallback(
   query: string,
@@ -98,22 +137,40 @@ export async function searchWithFallback(
   // Clean the extracted title for confidence scoring (remove noise words)
   const cleanedExtractedTitle = cleanSearchQuery(extractedTitle) || extractedTitle
 
-  // Try AniList first
+  // Try ComicK first
+  let comickResults: UnifiedSearchResult[] = []
+  try {
+    const rawComicK = await searchComicK(searchQuery)
+    comickResults = normalizeComicKResults(rawComicK, cleanedExtractedTitle)
+    log.debug('ComicK:', rawComicK.length, 'total,', comickResults.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD).length, 'above threshold')
+
+    const validComicK = tryProvider(comickResults)
+    if (validComicK) {
+      return validComicK
+    }
+  } catch (err) {
+    if (err instanceof CloudflareBlockError) {
+      log.warn('ComicK blocked by Cloudflare, falling through to AniList:', err.message)
+    } else {
+      throw err
+    }
+  }
+
+  // Try AniList
   const anilistResults = await searchAniList(searchQuery)
   const normalizedAnilist = normalizeAniListResults(anilistResults, cleanedExtractedTitle)
-  const validAnilist = normalizedAnilist.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
   log.debug(
     'AniList:',
     anilistResults.length,
     'total,',
-    validAnilist.length,
+    normalizedAnilist.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD).length,
     'above threshold'
   )
 
-  if (validAnilist.length > 0) {
-    // Sort by confidence descending
-    return validAnilist.sort((a, b) => b.confidence - a.confidence)
+  const validAnilist = tryProvider(normalizedAnilist)
+  if (validAnilist) {
+    return validAnilist
   }
 
   // No AniList results passed threshold — return top 5 low-confidence results if available
@@ -126,24 +183,30 @@ export async function searchWithFallback(
   log.info('AniList had no results, trying MangaDex')
   const mangadexResults = await searchMangaDex(searchQuery)
   const normalizedMangadex = normalizeMangaDexResults(mangadexResults, cleanedExtractedTitle)
-  const validMangadex = normalizedMangadex.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD)
 
   log.debug(
     'MangaDex:',
     mangadexResults.length,
     'total,',
-    validMangadex.length,
+    normalizedMangadex.filter((r) => r.confidence >= CONFIDENCE_THRESHOLD).length,
     'above threshold'
   )
 
-  if (validMangadex.length > 0) {
-    return validMangadex.sort((a, b) => b.confidence - a.confidence)
+  const validMangadex = tryProvider(normalizedMangadex)
+  if (validMangadex) {
+    return validMangadex
   }
 
   // No MangaDex results passed threshold — return top 5 low-confidence results
   if (normalizedMangadex.length > 0) {
     log.info('MangaDex had no valid matches, returning top low-confidence results')
     return normalizedMangadex.sort((a, b) => b.confidence - a.confidence).slice(0, MAX_LOW_CONFIDENCE_RESULTS)
+  }
+
+  // Nothing from ComicK low-confidence either (e.g. Cloudflare blocked and others empty)
+  if (comickResults.length > 0) {
+    log.info('ComicK had low-confidence results, returning top results as last resort')
+    return comickResults.sort((a, b) => b.confidence - a.confidence).slice(0, MAX_LOW_CONFIDENCE_RESULTS)
   }
 
   return []

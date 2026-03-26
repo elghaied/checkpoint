@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { searchWithFallback } from './searchService'
 import { searchAniList } from './anilist'
 import { searchMangaDex } from './mangadex'
-import type { AniListMedia, MangaDexMedia } from '@/shared/types'
+import { searchComicK, CloudflareBlockError } from './comick'
+import type { AniListMedia, MangaDexMedia, ComicKMedia } from '@/shared/types'
 
 // ---------------------------------------------------------------------------
 // Module mocks — keep real scoring functions, mock only the API callers
@@ -20,8 +21,19 @@ vi.mock('./mangadex', () => ({
   searchMangaDex: vi.fn(),
 }))
 
+vi.mock('./comick', () => ({
+  searchComicK: vi.fn(),
+  CloudflareBlockError: class CloudflareBlockError extends Error {
+    constructor(status: number) {
+      super(`CloudflareBlockError: ComicK returned ${status}`)
+      this.name = 'CloudflareBlockError'
+    }
+  },
+}))
+
 const mockSearchAniList = vi.mocked(searchAniList)
 const mockSearchMangaDex = vi.mocked(searchMangaDex)
+const mockSearchComicK = vi.mocked(searchComicK)
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,6 +79,13 @@ function makeMangaDexMedia(
   }
 }
 
+function makeComicKMedia(hid: string, title: string, altTitles: string[] = [], country = 'jp'): ComicKMedia {
+  return {
+    hid, slug: hid + '-slug', title, country, status: 1, lastChapter: 100,
+    coverUrl: `https://meo.comick.pictures/${hid}-s.jpg`, altTitles, genres: [],
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -74,6 +93,7 @@ function makeMangaDexMedia(
 describe('searchWithFallback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSearchComicK.mockResolvedValue([])
     mockSearchMangaDex.mockResolvedValue([])
   })
 
@@ -431,6 +451,72 @@ describe('searchWithFallback', () => {
 
       // Empty extractedTitle → use cleaned raw query
       expect(mockSearchAniList).toHaveBeenCalledWith('Solo Leveling')
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // ComicK provider (first in the 3-provider chain)
+  // -------------------------------------------------------------------------
+
+  describe('ComicK provider', () => {
+    it('returns ComicK results when above threshold (AniList and MangaDex not called)', async () => {
+      mockSearchComicK.mockResolvedValue([makeComicKMedia('ck-1', 'Solo Leveling')])
+
+      const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
+
+      expect(results).toHaveLength(1)
+      expect(results[0].provider).toBe('comick')
+      expect(mockSearchAniList).not.toHaveBeenCalled()
+      expect(mockSearchMangaDex).not.toHaveBeenCalled()
+    })
+
+    it('falls through to AniList when ComicK returns empty', async () => {
+      mockSearchComicK.mockResolvedValue([])
+      mockSearchAniList.mockResolvedValue([makeAniListMedia(1, 'Solo Leveling')])
+
+      const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
+
+      expect(mockSearchAniList).toHaveBeenCalledOnce()
+      expect(results[0].provider).toBe('anilist')
+    })
+
+    it('falls through to AniList on CloudflareBlockError', async () => {
+      mockSearchComicK.mockRejectedValue(new CloudflareBlockError(403))
+      mockSearchAniList.mockResolvedValue([makeAniListMedia(1, 'Solo Leveling')])
+
+      const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
+
+      expect(mockSearchAniList).toHaveBeenCalledOnce()
+      expect(results[0].provider).toBe('anilist')
+    })
+
+    it('falls through to MangaDex when both ComicK and AniList return empty', async () => {
+      mockSearchComicK.mockResolvedValue([])
+      mockSearchAniList.mockResolvedValue([])
+      mockSearchMangaDex.mockResolvedValue([makeMangaDexMedia('md-1', 'Solo Leveling')])
+
+      const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
+
+      expect(mockSearchMangaDex).toHaveBeenCalledOnce()
+      expect(results[0].provider).toBe('mangadex')
+    })
+
+    it('normalizes ComicK result into UnifiedSearchResult shape', async () => {
+      const comickMedia = makeComicKMedia('ck-42', 'Solo Leveling', ['Only I Level Up'], 'kr')
+      mockSearchComicK.mockResolvedValue([comickMedia])
+
+      const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
+
+      expect(results).toHaveLength(1)
+      const result = results[0]
+      expect(result.provider).toBe('comick')
+      expect(result.id).toBe('ck-42')
+      expect(result.title.primary).toBe('Solo Leveling')
+      expect(result.title.alt).toContain('Only I Level Up')
+      expect(result.format).toBe('MANHWA') // kr → MANHWA
+      expect(result.chapters).toBe(100)
+      expect(result.confidence).toBe(1.0)
+      expect(result.originalData).toBe(comickMedia)
     })
   })
 })
