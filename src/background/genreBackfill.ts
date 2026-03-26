@@ -1,6 +1,7 @@
 import { storageService } from '@/storage'
 import { fetchBatchChapterInfo, searchAniList } from './anilist'
 import { searchMangaDex } from './mangadex'
+import { fetchComicDetail, searchComicK } from './comick'
 import { createLogger } from '@/shared/logger'
 import { BACKFILL_BATCH_SIZE, BACKFILL_BATCH_DELAY_MS } from '@/shared/constants'
 import type { TrackedItem } from '@/shared/types'
@@ -8,32 +9,50 @@ import type { TrackedItem } from '@/shared/types'
 const log = createLogger('genreBackfill')
 
 /**
- * Fetch genres for an item from the opposite provider as a fallback.
- * AniList items fall back to MangaDex search by title.
- * MangaDex items fall back to AniList search by title.
+ * Fetch genres for an item using ComicK-first fallback logic.
+ * Tries ComicK detail (if slug available), then ComicK search by title,
+ * then the opposite provider (MangaDex for AniList/ComicK items, AniList for MangaDex items).
  */
 async function fetchFallbackGenres(item: TrackedItem): Promise<string[]> {
-  if (item.provider === 'anilist') {
-    // Fallback: search MangaDex by title
+  // Try ComicK first (best genre data)
+  if (item.comickSlug) {
+    try {
+      const detail = await fetchComicDetail(item.comickSlug)
+      if (detail && detail.genres.length > 0) return detail.genres
+    } catch (err) {
+      log.error('ComicK detail fallback failed for', item.titles.main, ':', err)
+    }
+  }
+
+  // Try ComicK search by title
+  try {
+    const results = await searchComicK(item.titles.main)
+    if (results.length > 0) {
+      const detail = await fetchComicDetail(results[0].slug)
+      if (detail && detail.genres.length > 0) return detail.genres
+    }
+  } catch {
+    // ComicK unavailable, continue to other providers
+  }
+
+  if (item.provider === 'anilist' || item.provider === 'comick') {
     try {
       const results = await searchMangaDex(item.titles.main)
-      if (results.length > 0 && results[0].genres.length > 0) {
-        return results[0].genres
-      }
+      if (results.length > 0 && results[0].genres.length > 0) return results[0].genres
     } catch (err) {
       log.error('MangaDex fallback failed for', item.titles.main, ':', err)
     }
-  } else {
-    // Fallback: search AniList by title
+  }
+
+  if (item.provider === 'mangadex') {
     try {
       const results = await searchAniList(item.titles.main)
-      if (results.length > 0 && results[0].genres.length > 0) {
-        return results[0].genres
-      }
+      if (results.length > 0 && results[0].genres.length > 0) return results[0].genres
     } catch (err) {
       log.error('AniList fallback failed for', item.titles.main, ':', err)
     }
   }
+
   return []
 }
 
@@ -72,6 +91,7 @@ export async function runGenreBackfill(): Promise<void> {
   // Split by provider
   const anilistItems = pendingItems.filter((item) => item.provider === 'anilist')
   const mangadexItems = pendingItems.filter((item) => item.provider === 'mangadex')
+  const comickItems = pendingItems.filter((item) => item.provider === 'comick')
 
   // -----------------------------------------------------------------------
   // Process AniList items
@@ -109,6 +129,49 @@ export async function runGenreBackfill(): Promise<void> {
       })
 
       log.debug('Backfilled', item.titles.main, ':', genres)
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Process ComicK items (batched with rate limiting)
+  // -----------------------------------------------------------------------
+
+  for (let i = 0; i < comickItems.length; i += BACKFILL_BATCH_SIZE) {
+    const batch = comickItems.slice(i, i + BACKFILL_BATCH_SIZE)
+
+    for (const item of batch) {
+      let genres: string[] = []
+
+      if (item.comickSlug) {
+        try {
+          const detail = await fetchComicDetail(item.comickSlug)
+          if (detail && detail.genres.length > 0) {
+            genres = detail.genres
+          }
+        } catch (err) {
+          log.error('ComicK detail fetch failed for', item.titles.main, ':', err)
+        }
+      }
+
+      if (genres.length === 0) {
+        genres = await fetchFallbackGenres(item)
+      }
+
+      await storageService.update(item.providerId, { genres, genresBackfilled: true })
+
+      completed++
+      await storageService.writeBackfillProgress({
+        completed,
+        total: pendingItems.length,
+        status: 'running',
+      })
+
+      log.debug('Backfilled', item.titles.main, ':', genres)
+    }
+
+    // Rate limit: delay between batches (skip after last batch)
+    if (i + BACKFILL_BATCH_SIZE < comickItems.length) {
+      await new Promise((resolve) => setTimeout(resolve, BACKFILL_BATCH_DELAY_MS))
     }
   }
 
