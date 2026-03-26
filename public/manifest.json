@@ -34,7 +34,7 @@
     "type": "module"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' https://s4.anilist.co https://uploads.mangadex.org"
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' https://s4.anilist.co https://uploads.mangadex.org https://meo.comick.pictures"
   },
   "icons": {
     "16": "icons/icon16.png",
