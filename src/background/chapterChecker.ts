@@ -3,6 +3,8 @@
 import { storageService } from '@/storage'
 import { fetchBatchChapterInfo } from './anilist'
 import { fetchBatchMangaDexInfo, searchMangaDex } from './mangadex'
+import { fetchBatchComicKInfo, searchComicK } from './comick'
+import type { ComicKChapterResult } from './comick'
 import { showNewChaptersNotification, showBatchNotification } from './notifications'
 import type { TrackedItem } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN } from '@/shared/constants'
@@ -28,6 +30,23 @@ async function getMangaDexChaptersByTitle(title: string): Promise<number | null>
     return isNaN(chapters) ? null : chapters
   } catch (err) {
     log.error('MangaDex fallback search failed for', title, ':', err)
+    return null
+  }
+}
+
+/**
+ * Search ComicK by title to get chapter info as fallback.
+ * Returns the first result's lastChapter if found.
+ */
+async function getComicKChaptersByTitle(title: string): Promise<number | null> {
+  try {
+    const results = await searchComicK(title)
+    if (results.length === 0) return null
+
+    const best = results[0]
+    return best.lastChapter ?? null
+  } catch (err) {
+    log.error('ComicK fallback search failed for', title, ':', err)
     return null
   }
 }
@@ -82,24 +101,35 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 
   log.info('Checking', items.length, 'items')
 
-  // Split items by provider
-  const anilistItems = items.filter((item) => item.provider === 'anilist')
-  const mangadexItems = items.filter((item) => item.provider === 'mangadex')
+  // Split items by provider — items with comickSlug always use ComicK
+  const comickItems = items.filter((item) => item.comickSlug)
+  const anilistOnly = items.filter((item) => !item.comickSlug && item.provider === 'anilist')
+  const mangadexOnly = items.filter((item) => !item.comickSlug && item.provider === 'mangadex')
 
-  // Fetch from both APIs
-  const anilistIds = anilistItems.map((item) => item.providerId)
-  const mangadexIds = mangadexItems.map((item) => item.providerId)
+  // Fetch from all three APIs in parallel
+  const comickSlugs = comickItems.map((item) => item.comickSlug as string)
+  const anilistIds = anilistOnly.map((item) => item.providerId)
+  const mangadexIds = mangadexOnly.map((item) => item.providerId)
 
-  const [anilistInfo, mangadexInfo] = await Promise.all([
+  const [comickInfo, anilistInfo, mangadexInfo] = await Promise.all([
+    comickSlugs.length > 0 ? fetchBatchComicKInfo(comickSlugs) : new Map<string, ComicKChapterResult>(),
     anilistIds.length > 0 ? fetchBatchChapterInfo(anilistIds) : new Map(),
     mangadexIds.length > 0 ? fetchBatchMangaDexInfo(mangadexIds) : new Map(),
   ])
 
   // Log fetched data
+  if (comickInfo.size > 0) {
+    log.debug('ComicK data:')
+    for (const [slug, info] of comickInfo) {
+      const item = comickItems.find((i) => i.comickSlug === slug)
+      log.debug(`  - ${item?.titles.main || slug}: chapters=${info.chapters}, status=${info.status}`)
+    }
+  }
+
   if (anilistInfo.size > 0) {
     log.debug('AniList data:')
     for (const [id, info] of anilistInfo) {
-      const item = anilistItems.find((i) => i.providerId === id)
+      const item = anilistOnly.find((i) => i.providerId === id)
       log.debug(`  - ${item?.titles.main || id}: chapters=${info.chapters}, status=${info.status}`)
     }
   }
@@ -107,21 +137,21 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   if (mangadexInfo.size > 0) {
     log.debug('MangaDex data:')
     for (const [id, info] of mangadexInfo) {
-      const item = mangadexItems.find((i) => i.providerId === id)
+      const item = mangadexOnly.find((i) => i.providerId === id)
       log.debug(`  - ${item?.titles.main || id}: chapters=${info.lastChapter}, status=${info.status}`)
     }
   }
 
-  // Find AniList items with null chapters - need MangaDex fallback
-  const anilistNullChapterItems = anilistItems.filter((item) => {
+  // Find AniList items with null chapters - try ComicK first, then MangaDex as last resort
+  const anilistNullChapterItems = anilistOnly.filter((item) => {
     const info = anilistInfo.get(item.providerId)
     return info && info.chapters === null
   })
 
-  // Fetch MangaDex fallback for AniList items with null chapters
-  const mangadexFallback = new Map<string, number | null>()
+  // Fetch fallback for AniList items with null chapters (ComicK first, MangaDex second)
+  const titleFallback = new Map<string, number | null>()
   if (anilistNullChapterItems.length > 0) {
-    log.debug('Fetching MangaDex fallback for', anilistNullChapterItems.length, 'items with null AniList chapters')
+    log.debug('Fetching fallback for', anilistNullChapterItems.length, 'items with null AniList chapters')
 
     const BATCH_SIZE = 5
     const BATCH_DELAY = 1100
@@ -129,14 +159,18 @@ export async function handleChapterCheckAlarm(): Promise<void> {
     for (let i = 0; i < anilistNullChapterItems.length; i += BATCH_SIZE) {
       const batch = anilistNullChapterItems.slice(i, i + BATCH_SIZE)
       const batchResults = await Promise.allSettled(
-        batch.map((item) => getMangaDexChaptersByTitle(item.titles.main))
+        batch.map(async (item) => {
+          const comickChapters = await getComicKChaptersByTitle(item.titles.main)
+          if (comickChapters !== null) return comickChapters
+          return getMangaDexChaptersByTitle(item.titles.main)
+        })
       )
 
       for (let j = 0; j < batchResults.length; j++) {
         const result = batchResults[j]
         if (result.status === 'fulfilled') {
-          mangadexFallback.set(batch[j].providerId, result.value)
-          log.debug(`  - ${batch[j].titles.main}: MangaDex fallback chapters=${result.value}`)
+          titleFallback.set(batch[j].providerId, result.value)
+          log.debug(`  - ${batch[j].titles.main}: fallback chapters=${result.value}`)
         }
       }
 
@@ -150,21 +184,34 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   const chapterInfo = new Map<string, { status: string | null; chapters: number | null; source: string }>()
   const itemsWithNoData: TrackedItem[] = []
 
+  // ComicK items — keyed by slug in comickInfo, map back to providerId
+  for (const item of comickItems) {
+    const slug = item.comickSlug as string
+    const info = comickInfo.get(slug)
+    if (!info) continue
+
+    chapterInfo.set(item.providerId, { status: info.status, chapters: info.chapters, source: 'comick' })
+
+    if (info.chapters === null) {
+      itemsWithNoData.push(item)
+    }
+  }
+
   for (const [id, info] of anilistInfo) {
     let chapters = info.chapters
     let source = 'anilist'
 
-    // Use MangaDex fallback if AniList has null chapters
-    if (chapters === null && mangadexFallback.has(id)) {
-      chapters = mangadexFallback.get(id) ?? null
-      source = chapters !== null ? 'mangadex-fallback' : 'none'
+    // Use ComicK/MangaDex fallback if AniList has null chapters
+    if (chapters === null && titleFallback.has(id)) {
+      chapters = titleFallback.get(id) ?? null
+      source = chapters !== null ? 'fallback' : 'none'
     }
 
     chapterInfo.set(id, { status: info.status, chapters, source })
 
     // Track items with no data from either provider
     if (chapters === null) {
-      const item = anilistItems.find((i) => i.providerId === id)
+      const item = anilistOnly.find((i) => i.providerId === id)
       if (item) itemsWithNoData.push(item)
     }
   }
@@ -175,7 +222,7 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 
     // Track items with no data
     if (chapters === null) {
-      const item = mangadexItems.find((i) => i.providerId === id)
+      const item = mangadexOnly.find((i) => i.providerId === id)
       if (item) itemsWithNoData.push(item)
     }
   }
