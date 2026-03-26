@@ -10,6 +10,7 @@ import type {
   ImportResult,
   CustomTagRegistry,
   CustomList,
+  ComicKMedia,
 } from '@/shared/types'
 
 /**
@@ -45,6 +46,13 @@ export async function searchAniList(query: string): Promise<AniListMedia[]> {
  */
 export async function searchManga(query: string, extractedTitle: string): Promise<UnifiedSearchResult[]> {
   return sendMessage<UnifiedSearchResult[]>({ type: 'SEARCH_MANGA', query, extractedTitle })
+}
+
+/**
+ * Search ComicK directly
+ */
+export async function searchComicK(query: string): Promise<ComicKMedia[]> {
+  return sendMessage<ComicKMedia[]>({ type: 'SEARCH_COMICK', query })
 }
 
 /**

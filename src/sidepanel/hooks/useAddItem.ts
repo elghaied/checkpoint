@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { TrackedItem, AniListMedia, PageMetadata, UnifiedSearchResult } from '@/shared/types'
+import type { TrackedItem, ComicKMedia, PageMetadata, UnifiedSearchResult } from '@/shared/types'
 import { extractMetadata, searchManga, saveItem, findByTitle } from '../services/messaging'
 import { TOAST_DURATION_MS } from '@/shared/constants'
 
@@ -117,11 +117,18 @@ export function useAddItem(onSuccess: () => void) {
         altTitles.push(originalTitle)
       }
 
-      // Extract provider-specific data
-      let anilistStatus: string | null = null
-      if (result.provider === 'anilist') {
-        const anilistData = result.originalData as AniListMedia
-        anilistStatus = anilistData.status
+      // Extract status from the unified result (works for all providers)
+      const providerStatus = result.status
+
+      // Extract ComicK cross-reference fields if available
+      let comickHid: string | null = null
+      let comickSlug: string | null = null
+      let anilistIdRef: string | null = null
+
+      if (result.provider === 'comick') {
+        const comickData = result.originalData as ComicKMedia
+        comickHid = comickData.hid
+        comickSlug = comickData.slug
       }
 
       const item: TrackedItem = {
@@ -146,13 +153,13 @@ export function useAddItem(onSuccess: () => void) {
         latestKnownChapters: result.chapters,
         lastApiCheck: now,
         notificationsEnabled: false, // Off by default per user decision
-        anilistStatus,
+        anilistStatus: providerStatus,
         genres: result.genres ?? [],
         tags: [],
         genresBackfilled: true, // genres came from the search result
-        comickHid: null,
-        comickSlug: null,
-        anilistId: null,
+        comickHid,
+        comickSlug,
+        anilistId: anilistIdRef,
       }
 
       await saveItem(item)

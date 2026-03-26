@@ -1,6 +1,7 @@
 // Checkpoint Background Service Worker
 import { searchAniList } from './anilist'
 import { searchMangaDex } from './mangadex'
+import { searchComicK } from './comick'
 import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
@@ -125,6 +126,13 @@ async function handleMessage(
       log.debug('SEARCH_MANGADEX:', message.query)
       const results = await searchMangaDex(message.query)
       log.debug('SEARCH_MANGADEX results:', results.length)
+      return results
+    }
+
+    case 'SEARCH_COMICK': {
+      log.debug('SEARCH_COMICK:', message.query)
+      const results = await searchComicK(message.query)
+      log.debug('SEARCH_COMICK results:', results.length)
       return results
     }
 
