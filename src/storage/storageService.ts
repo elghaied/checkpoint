@@ -549,6 +549,9 @@ export class StorageService {
           tags: importItem.tags ?? [],
           genresBackfilled: importItem.genresBackfilled ?? false,
           lastApiCheck: null,
+          comickHid: (importItem as TrackedItem).comickHid ?? null,
+          comickSlug: (importItem as TrackedItem).comickSlug ?? null,
+          anilistId: (importItem as TrackedItem).anilistId ?? null,
         }
 
         if (!existing) {
