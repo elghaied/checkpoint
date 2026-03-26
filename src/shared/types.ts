@@ -9,7 +9,7 @@ export interface PageMetadata {
 
 // Tracked item stored in local storage
 export interface TrackedItem {
-  provider: 'anilist' | 'mangadex'
+  provider: 'comick' | 'anilist' | 'mangadex'
   providerId: string
   mediaType: 'manga' | 'anime' | 'tv'
   format: 'MANGA' | 'MANHWA' | 'MANHUA'
@@ -37,6 +37,11 @@ export interface TrackedItem {
   genres: string[]              // From API, normalized
   tags: string[]                // User-defined freeform tags
   genresBackfilled: boolean     // True once genre fetch attempted (both providers if needed)
+
+  // ComicK cross-reference fields
+  comickHid: string | null         // ComicK hid (stable unique ID)
+  comickSlug: string | null        // ComicK slug (for API calls)
+  anilistId: string | null         // AniList ID from ComicK links.al
 }
 
 // Extension settings
@@ -74,6 +79,9 @@ export interface ExportedItem {
   genres: string[]
   tags: string[]
   genresBackfilled: boolean
+  comickHid: string | null
+  comickSlug: string | null
+  anilistId: string | null
 }
 
 export interface ExportedData {
@@ -131,9 +139,22 @@ export interface MangaDexMedia {
   genres: string[]
 }
 
+// ComicK media response (from search endpoint)
+export interface ComicKMedia {
+  hid: string
+  slug: string
+  title: string
+  country: string              // 'jp', 'kr', 'cn'
+  status: number               // 1=Ongoing, 2=Completed, 3=Cancelled, 4=Hiatus
+  lastChapter: number | null   // from last_chapter, floored to int
+  coverUrl: string             // pre-built URL from cover_url
+  altTitles: string[]          // extracted from md_titles
+  genres: string[]             // resolved genre names (empty from search, filled from detail)
+}
+
 // Unified search result for multi-provider search
 export interface UnifiedSearchResult {
-  provider: 'anilist' | 'mangadex'
+  provider: 'comick' | 'anilist' | 'mangadex'
   id: string
   title: { primary: string; alt: string[] }
   coverUrl: string
@@ -142,7 +163,7 @@ export interface UnifiedSearchResult {
   chapters: number | null
   genres: string[]
   confidence: number
-  originalData: AniListMedia | MangaDexMedia
+  originalData: ComicKMedia | AniListMedia | MangaDexMedia
 }
 
 // Filter entry for tri-state filtering
@@ -184,6 +205,7 @@ export type MessageRequest =
   | { type: 'SEARCH_ANILIST'; query: string }
   | { type: 'SEARCH_MANGA'; query: string; extractedTitle: string }
   | { type: 'SEARCH_MANGADEX'; query: string }
+  | { type: 'SEARCH_COMICK'; query: string }
   | { type: 'SAVE_ITEM'; item: TrackedItem }
   | { type: 'GET_ALL_ITEMS'; format?: TrackedItem['format'] }
   | { type: 'UPDATE_PROGRESS'; providerId: string; progress: string; lastUrl: string }

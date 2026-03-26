@@ -304,6 +304,9 @@ export function ConfirmPanel({ session, onComplete, onSavePendingReview, onClear
           genres: match.genres,
           tags: normalizedTags,
           genresBackfilled: match.genres.length > 0,
+          comickHid: null,
+          comickSlug: null,
+          anilistId: null,
         }
         try {
           await saveItem(item)

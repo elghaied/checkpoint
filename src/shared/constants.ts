@@ -45,3 +45,10 @@ export const IMPORT_RATE_LIMIT_PER_MINUTE = 75
 export const IMPORT_SESSION_KEY = 'importSession'
 export const PENDING_REVIEW_KEY = 'pendingReview'
 export const PENDING_REVIEW_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
+
+// ComicK API
+export const COMICK_API_BASE = 'https://api.comick.dev'
+export const COMICK_RATE_LIMIT_DELAY_MS = 300
+export const COMICK_BATCH_SIZE = 5
+export const MIGRATION_CONFIDENCE_THRESHOLD = 0.85
+export const MIGRATION_STORAGE_KEY = 'comickMigrationComplete'

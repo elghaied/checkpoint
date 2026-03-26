@@ -150,6 +150,9 @@ export function useAddItem(onSuccess: () => void) {
         genres: result.genres ?? [],
         tags: [],
         genresBackfilled: true, // genres came from the search result
+        comickHid: null,
+        comickSlug: null,
+        anilistId: null,
       }
 
       await saveItem(item)

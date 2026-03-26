@@ -84,3 +84,33 @@ export function getFormatFromLanguage(lang: string): MediaFormat {
       return 'MANGA'
   }
 }
+
+/**
+ * Derive format from ComicK's lowercase country code.
+ * jp -> MANGA, kr -> MANHWA, cn/tw -> MANHUA
+ */
+export function getFormatFromCountry(country: string): MediaFormat {
+  switch (country) {
+    case 'kr':
+      return 'MANHWA'
+    case 'cn':
+    case 'tw':
+      return 'MANHUA'
+    default:
+      return 'MANGA'
+  }
+}
+
+/**
+ * Map ComicK's numeric status to the string status used internally.
+ * 1=Ongoing→RELEASING, 2=Completed→FINISHED, 3=Cancelled→CANCELLED, 4=Hiatus→HIATUS
+ */
+export function mapComickStatus(status: number): string | null {
+  switch (status) {
+    case 1: return 'RELEASING'
+    case 2: return 'FINISHED'
+    case 3: return 'CANCELLED'
+    case 4: return 'HIATUS'
+    default: return null
+  }
+}

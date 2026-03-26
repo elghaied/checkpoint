@@ -493,6 +493,9 @@ export class StorageService {
       genres: item.genres ?? [],
       tags: item.tags ?? [],
       genresBackfilled: item.genresBackfilled ?? false,
+      comickHid: item.comickHid ?? null,
+      comickSlug: item.comickSlug ?? null,
+      anilistId: item.anilistId ?? null,
     }))
 
     return {

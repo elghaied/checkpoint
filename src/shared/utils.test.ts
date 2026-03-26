@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanSearchQuery, getFormat, getFormatFromLanguage } from './utils'
+import { cleanSearchQuery, getFormat, getFormatFromLanguage, getFormatFromCountry, mapComickStatus } from './utils'
 
 describe('cleanSearchQuery', () => {
   it('removes individual noise words', () => {
@@ -124,5 +124,43 @@ describe('getFormatFromLanguage', () => {
 
   it('returns MANHUA for zh-tw (consistent with getFormat("TW"))', () => {
     expect(getFormatFromLanguage('zh-tw')).toBe('MANHUA')
+  })
+})
+
+describe('getFormatFromCountry', () => {
+  it('returns MANGA for jp', () => {
+    expect(getFormatFromCountry('jp')).toBe('MANGA')
+  })
+  it('returns MANHWA for kr', () => {
+    expect(getFormatFromCountry('kr')).toBe('MANHWA')
+  })
+  it('returns MANHUA for cn', () => {
+    expect(getFormatFromCountry('cn')).toBe('MANHUA')
+  })
+  it('returns MANHUA for tw', () => {
+    expect(getFormatFromCountry('tw')).toBe('MANHUA')
+  })
+  it('returns MANGA for unknown country codes', () => {
+    expect(getFormatFromCountry('us')).toBe('MANGA')
+    expect(getFormatFromCountry('')).toBe('MANGA')
+  })
+})
+
+describe('mapComickStatus', () => {
+  it('maps 1 to RELEASING', () => {
+    expect(mapComickStatus(1)).toBe('RELEASING')
+  })
+  it('maps 2 to FINISHED', () => {
+    expect(mapComickStatus(2)).toBe('FINISHED')
+  })
+  it('maps 3 to CANCELLED', () => {
+    expect(mapComickStatus(3)).toBe('CANCELLED')
+  })
+  it('maps 4 to HIATUS', () => {
+    expect(mapComickStatus(4)).toBe('HIATUS')
+  })
+  it('returns null for unknown status', () => {
+    expect(mapComickStatus(0)).toBeNull()
+    expect(mapComickStatus(99)).toBeNull()
   })
 })
