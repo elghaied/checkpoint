@@ -1,5 +1,5 @@
 import { storageService } from '@/storage'
-import { searchComicK, fetchComicDetail } from './comick'
+import { searchComicK, fetchComicDetail, enrichComicKResult } from './comick'
 import { bestTitleScore } from './anilist'
 import { createLogger } from '@/shared/logger'
 import {
@@ -271,4 +271,77 @@ export async function runSilentMigration(): Promise<void> {
     result.skipped,
     'skipped'
   )
+}
+
+// ---------------------------------------------------------------------------
+// Post-import enrichment
+// ---------------------------------------------------------------------------
+
+const ALT_TITLES_ENRICHMENT_THRESHOLD = 10
+
+/**
+ * Enrich items that already have comickSlug but sparse alt titles.
+ * This handles backup-imported items that were migrated before the
+ * enrichment logic was added, or that have only AniList-level alt titles.
+ *
+ * Fetches ComicK detail for each eligible item and merges the full
+ * md_titles set (41+ titles across many languages) into the item.
+ */
+export async function runPostImportEnrichment(): Promise<void> {
+  log.warn('Starting post-import enrichment')
+
+  const allItems = await storageService.getAll()
+  const needsEnrichment = allItems.filter(
+    (item) => item.comickSlug && item.titles.alt.length < ALT_TITLES_ENRICHMENT_THRESHOLD
+  )
+
+  if (needsEnrichment.length === 0) {
+    log.warn('No items need post-import enrichment')
+    return
+  }
+
+  log.warn('Enriching', needsEnrichment.length, 'items with ComicK detail data')
+
+  let enriched = 0
+
+  for (let i = 0; i < needsEnrichment.length; i++) {
+    const item = needsEnrichment[i]
+
+    try {
+      const enrichment = await enrichComicKResult(item.comickSlug!)
+      if (!enrichment) continue
+
+      // Merge alt titles (deduplicated)
+      const existingSet = new Set(item.titles.alt.map((t) => t.toLowerCase().trim()))
+      const newAlts: string[] = []
+      for (const t of enrichment.altTitles) {
+        if (t && !existingSet.has(t.toLowerCase().trim())) {
+          newAlts.push(t)
+          existingSet.add(t.toLowerCase().trim())
+        }
+      }
+
+      if (newAlts.length === 0 && enrichment.genres.length === 0) continue
+
+      const mergedAlt = [...item.titles.alt, ...newAlts]
+
+      await storageService.update(item.providerId, {
+        titles: { main: item.titles.main, alt: mergedAlt },
+        anilistId: enrichment.anilistId ?? item.anilistId,
+        genres: enrichment.genres.length > item.genres.length ? enrichment.genres : item.genres,
+      })
+
+      enriched++
+      log.warn(`  Enriched: "${item.titles.main}" (+${newAlts.length} alt titles)`)
+    } catch (err) {
+      log.error(`  Error enriching "${item.titles.main}":`, err)
+    }
+
+    // Rate limit
+    if (i < needsEnrichment.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, COMICK_RATE_LIMIT_DELAY_MS))
+    }
+  }
+
+  log.warn('Post-import enrichment complete:', enriched, 'items enriched')
 }

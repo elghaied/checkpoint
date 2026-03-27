@@ -6,7 +6,7 @@ import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
 import { runGenreBackfill } from './genreBackfill'
-import { runSilentMigration } from './migration'
+import { runSilentMigration, runPostImportEnrichment } from './migration'
 import type { MessageRequest, ExportedData } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE, MIGRATION_STORAGE_KEY } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
@@ -264,6 +264,8 @@ async function handleMessage(
       // Reset ComicK migration flag so imported items get cross-referenced
       await new Promise<void>((resolve) => chrome.storage.local.remove(MIGRATION_STORAGE_KEY, resolve))
       runSilentMigration().catch((err) => log.error('ComicK migration after import failed:', err))
+      // Enrich items that already have comickSlug but sparse alt titles
+      runPostImportEnrichment().catch((err) => log.error('Post-import enrichment failed:', err))
       return result
     }
 
