@@ -1,6 +1,6 @@
 import { storageService } from '@/storage'
 import { searchComicK, fetchComicDetail } from './comick'
-import { normalise, scorePair } from './anilist'
+import { normalise, scorePair, bestTitleScore } from './anilist'
 import { createLogger } from '@/shared/logger'
 import {
   MIGRATION_CONFIDENCE_THRESHOLD,
@@ -36,19 +36,7 @@ function scoreComicKResult(
   comickTitle: string,
   comickAltTitles: string[]
 ): number {
-  const comickTitles = [comickTitle, ...comickAltTitles]
-  let best = 0
-
-  for (const itemT of itemTitles) {
-    const normItem = normalise(itemT)
-    if (!normItem) continue
-    for (const comickT of comickTitles) {
-      const score = scorePair(normItem, normalise(comickT))
-      if (score > best) best = score
-    }
-  }
-
-  return best
+  return bestTitleScore(itemTitles, [comickTitle, ...comickAltTitles])
 }
 
 // ---------------------------------------------------------------------------
