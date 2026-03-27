@@ -4,19 +4,27 @@
 
 .sort-dropdown__select {
   appearance: none;
-  background: var(--surface, #1a1a2e);
-  color: var(--text, #e0e0e0);
-  border: 1px solid var(--border, #2a2a4a);
-  border-radius: 6px;
-  padding: 4px 24px 4px 8px;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--text-primary, #eaeaea);
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+  padding: 6px 28px 6px 10px;
   font-size: 12px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
   cursor: pointer;
+  height: 36px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%23a0a0a0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 6px center;
+  background-position: right 8px center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .sort-dropdown__select:focus {
   outline: none;
-  border-color: var(--primary, #e94560);
+  border-color: var(--accent, #e94560);
+  box-shadow: 0 0 0 3px var(--accent-glow, rgba(233, 69, 96, 0.12));
+}
+
+.sort-dropdown__select:hover {
+  border-color: rgba(255, 255, 255, 0.1);
 }

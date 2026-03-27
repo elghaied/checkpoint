@@ -3,13 +3,14 @@
   bottom: 0;
   left: 40px;
   right: 0;
-  background: var(--surface, #1a1a2e);
-  border-top: 1px solid var(--border, #2a2a4a);
-  padding: 8px 12px;
+  background: var(--bg-primary, #1a1a2e);
+  border-top: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
+  padding: 10px 16px;
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  animation: slideUp 0.2s ease;
 }
 
 .bulk-bar__top {
@@ -19,18 +20,24 @@
 }
 
 .bulk-bar__count {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--primary, #e94560);
+  color: var(--accent, #e94560);
+  font-family: var(--font-body, 'DM Sans', sans-serif);
 }
 
 .bulk-bar__select-toggle {
   background: none;
   border: none;
-  color: var(--text-muted, #a0a0a0);
-  font-size: 11px;
+  color: var(--text-secondary, #a0a0a0);
+  font-size: 12px;
   cursor: pointer;
   text-decoration: underline;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+}
+
+.bulk-bar__select-toggle:hover {
+  color: var(--text-primary, #eaeaea);
 }
 
 .bulk-bar__actions {
@@ -40,30 +47,38 @@
 }
 
 .bulk-bar__btn {
-  padding: 6px 10px;
-  border: 1px solid var(--border, #2a2a4a);
-  border-radius: 6px;
-  background: var(--bg, #0f0f1a);
-  color: var(--text, #e0e0e0);
-  font-size: 11px;
+  padding: 8px 14px;
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  color: var(--text-primary, #eaeaea);
+  font-size: 12px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .bulk-bar__btn:hover:not(:disabled) {
-  background: var(--border, #2a2a4a);
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .bulk-bar__btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .bulk-bar__btn--delete {
-  color: #ff4444;
-  border-color: #ff4444;
+  color: var(--danger, #f87171);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.bulk-bar__btn--delete:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: var(--danger, #f87171);
 }
 
 .bulk-bar__btn--cancel {
   margin-left: auto;
+  color: var(--text-secondary, #a0a0a0);
 }

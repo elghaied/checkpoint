@@ -392,8 +392,9 @@ export default function App() {
               onChange={(sortOrder) => updateSettings({ sortOrder })}
             />
             <button
-              className="select-btn"
+              className={`filter-toggle ${selectionMode ? 'filter-toggle--active' : ''}`}
               onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+              style={{ fontSize: '12px' }}
             >
               {selectionMode ? 'Cancel' : 'Select'}
             </button>

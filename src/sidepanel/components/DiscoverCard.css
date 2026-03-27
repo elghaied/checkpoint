@@ -1,18 +1,27 @@
 .discover-card {
   display: flex;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 8px;
-  background: var(--surface, #1a1a2e);
-  border: 1px solid var(--border, #2a2a4a);
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background-color: var(--surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  animation: cardIn 0.35s ease both;
+}
+
+.discover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: var(--accent-glow, rgba(233, 69, 96, 0.12));
 }
 
 .discover-card__cover {
-  width: 60px;
-  height: 85px;
+  width: 64px;
+  height: 90px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 8px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .discover-card__info {
@@ -24,52 +33,66 @@
 }
 
 .discover-card__title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text-primary, #eaeaea);
+  font-family: var(--font-body, 'DM Sans', sans-serif);
 }
 
 .discover-card__meta {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   font-size: 11px;
-  color: var(--text-muted, #a0a0a0);
+  color: var(--text-secondary, #a0a0a0);
+}
+
+.discover-card__format {
+  font-weight: 500;
 }
 
 .discover-card__rating {
   color: #f59e0b;
+  font-weight: 600;
+}
+
+.discover-card__status {
+  opacity: 0.7;
 }
 
 .discover-card__chapters {
-  font-size: 11px;
-  color: var(--text-muted, #a0a0a0);
+  font-size: 12px;
+  color: var(--text-secondary, #a0a0a0);
   margin: 0;
+  font-family: var(--font-mono, 'Space Mono', monospace);
 }
 
 .discover-card__track {
   align-self: flex-start;
   margin-top: auto;
-  padding: 4px 12px;
-  border: 1px solid var(--primary, #e94560);
-  border-radius: 4px;
+  padding: 6px 14px;
+  border: 1px solid var(--accent, #e94560);
+  border-radius: 8px;
   background: transparent;
-  color: var(--primary, #e94560);
-  font-size: 11px;
+  color: var(--accent, #e94560);
+  font-size: 12px;
   font-weight: 600;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .discover-card__track:hover:not(:disabled) {
-  background: var(--primary, #e94560);
+  background: var(--accent, #e94560);
   color: white;
 }
 
 .discover-card__track--tracked {
-  border-color: var(--text-muted, #a0a0a0);
-  color: var(--text-muted, #a0a0a0);
+  border-color: var(--surface-border, rgba(255, 255, 255, 0.06));
+  color: var(--text-secondary, #a0a0a0);
+  background: var(--surface, rgba(255, 255, 255, 0.03));
   cursor: default;
 }
