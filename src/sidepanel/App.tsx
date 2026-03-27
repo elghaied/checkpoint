@@ -4,6 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
 import TabBar, { type TabValue } from './components/TabBar'
 import SearchBar from './components/SearchBar'
+import SortDropdown from './components/SortDropdown'
 import ItemList from './components/ItemList'
 import AddButton from './components/AddButton'
 import SearchModal from './components/SearchModal'
@@ -20,6 +21,7 @@ import type { NavView } from './components/NavRail'
 import TagsView from './components/TagsView'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
+import { useSettings } from './hooks/useSettings'
 import { useCustomLists } from './hooks/useCustomLists'
 import { useCustomTags } from './hooks/useCustomTags'
 import { useFilterPanel } from './hooks/useFilterPanel'
@@ -36,7 +38,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabValue>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [connectionError, setConnectionError] = useState<string | null>(null)
-  const { items, loading, error, refresh } = useTrackedItems()
+  const { settings, updateSettings } = useSettings()
+  const { items, loading, error, refresh } = useTrackedItems(undefined, settings.sortOrder)
   const addItem = useAddItem(refresh)
   const { tags: tagRegistry } = useCustomTags()
   const filterPanel = useFilterPanel(items, activeTab)
@@ -138,6 +141,10 @@ export default function App() {
     if (item.lastUrl) {
       chrome.tabs.create({ url: item.lastUrl })
     }
+  }
+
+  const handleTogglePin = async (providerId: string, currentPinned: boolean) => {
+    await updateItem(providerId, { pinned: !currentPinned })
   }
 
   // ---- List handlers ----
@@ -299,6 +306,10 @@ export default function App() {
           <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
           <div className="search-filter-row">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            <SortDropdown
+              value={settings.sortOrder}
+              onChange={(sortOrder) => updateSettings({ sortOrder })}
+            />
             <button
               className={`filter-toggle${filterPanel.isOpen ? ' filter-toggle--active' : ''}${filterPanel.activeFilterCount > 0 ? ' filter-toggle--has-filters' : ''}`}
               onClick={() => filterPanel.setIsOpen((o) => !o)}
@@ -337,6 +348,7 @@ export default function App() {
             onEdit={handleEdit}
             onOpen={handleOpen}
             onRefresh={refresh}
+            onTogglePin={(item) => handleTogglePin(item.providerId, item.pinned)}
           />
           {addItem.status === 'error' && (
             <div className="toast toast--error">

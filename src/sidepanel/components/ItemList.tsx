@@ -11,9 +11,10 @@ interface ItemListProps {
   onEdit: (item: TrackedItem) => void
   onOpen: (item: TrackedItem) => void
   onRefresh: () => void
+  onTogglePin?: (item: TrackedItem) => void
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh, onTogglePin }) => {
   if (error) {
     return (
       <div className="error-state">
@@ -55,6 +56,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onE
           onEdit={() => onEdit(item)}
           onOpen={() => onOpen(item)}
           onToggleNotifications={onRefresh}
+          onTogglePin={onTogglePin ? () => onTogglePin(item) : undefined}
         />
       ))}
     </div>
