@@ -241,7 +241,7 @@ export async function fetchComicDetail(slug: string): Promise<ComicKDetail | nul
     const response = await fetchWithRetry(url, { headers: COMICK_HEADERS })
 
     if (!response.ok) {
-      log.error('ComicK detail returned HTTP', response.status, 'for slug:', slug)
+      log.debug('ComicK detail returned HTTP', response.status, 'for slug:', slug)
       return null
     }
 
