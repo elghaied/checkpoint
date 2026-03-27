@@ -1,0 +1,67 @@
+.discover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.discover__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border, #2a2a4a);
+  padding-bottom: 8px;
+}
+
+.discover__tab {
+  padding: 6px 16px;
+  border: none;
+  background: none;
+  color: var(--text-muted, #a0a0a0);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.discover__tab--active {
+  color: var(--primary, #e94560);
+  border-bottom-color: var(--primary, #e94560);
+}
+
+.discover__filters {
+  display: flex;
+  gap: 4px;
+}
+
+.discover__filter {
+  padding: 4px 10px;
+  border: 1px solid var(--border, #2a2a4a);
+  border-radius: 12px;
+  background: none;
+  color: var(--text-muted, #a0a0a0);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.discover__filter--active {
+  background: var(--primary, #e94560);
+  border-color: var(--primary, #e94560);
+  color: white;
+}
+
+.discover__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.discover__loading,
+.discover__empty {
+  text-align: center;
+  color: var(--text-muted, #a0a0a0);
+  font-size: 13px;
+  padding: 24px 0;
+}
