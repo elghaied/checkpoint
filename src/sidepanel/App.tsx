@@ -122,6 +122,40 @@ export default function App() {
     refresh()
   }
 
+  const handleBulkTag = async () => {
+    const tagName = prompt('Enter tag name to add:')
+    if (!tagName?.trim()) return
+    for (const id of selectedIds) {
+      const item = items.find((i) => i.providerId === id)
+      if (item && !item.tags.includes(tagName.trim())) {
+        await updateItem(id, { tags: [...item.tags, tagName.trim()] })
+      }
+    }
+    exitSelectionMode()
+    refresh()
+  }
+
+  const handleBulkAddToList = async () => {
+    const manualLists = lists.filter((l) => l.type === 'manual')
+    if (manualLists.length === 0) {
+      alert('No lists available. Create a list first.')
+      return
+    }
+    const listNames = manualLists.map((l, i) => `${i + 1}. ${l.name}`).join('\n')
+    const input = prompt(`Add to list:\n${listNames}\n\nEnter list number:`)
+    if (!input) return
+    const listIndex = parseInt(input, 10) - 1
+    const targetList = manualLists[listIndex]
+    if (!targetList) {
+      alert('Invalid list number.')
+      return
+    }
+    const newIds = [...new Set([...targetList.itemIds, ...selectedIds])]
+    await updateList(targetList.id, { itemIds: newIds })
+    exitSelectionMode()
+    refreshLists()
+  }
+
   const handleEdit = (item: TrackedItem) => {
     setEditingItem(item)
   }
@@ -403,8 +437,8 @@ export default function App() {
               onSelectAll={() => setSelectedIds(new Set(displayItems.map((i) => i.providerId)))}
               onDeselectAll={() => setSelectedIds(new Set())}
               onDelete={handleBulkDelete}
-              onTag={() => {}}
-              onAddToList={() => {}}
+              onTag={handleBulkTag}
+              onAddToList={handleBulkAddToList}
               onToggleNotifications={handleBulkToggleNotifications}
               onCancel={exitSelectionMode}
             />
