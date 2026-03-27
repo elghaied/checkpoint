@@ -380,24 +380,23 @@ export async function handleChapterCheckAlarm(): Promise<void> {
 }
 
 /**
- * Update the extension icon badge with total chapters ahead across all items.
+ * Update the extension icon badge with the number of titles that have new chapters.
  */
 export async function updateBadge(): Promise<void> {
   const allItems = await storageService.getAll()
-  let totalAhead = 0
+  let titlesWithUpdates = 0
 
   for (const item of allItems) {
     if (item.latestKnownChapters != null && item.latestKnownChapters > 0) {
       const progress = parseFloat(item.progress.value) || 0
-      const ahead = item.latestKnownChapters - progress
-      if (ahead > 0) totalAhead += Math.round(ahead)
+      if (item.latestKnownChapters - progress > 0) titlesWithUpdates++
     }
   }
 
-  if (totalAhead > 0) {
-    const text = totalAhead > 999 ? '999+' : String(totalAhead)
-    chrome.action.setBadgeText({ text })
+  if (titlesWithUpdates > 0) {
+    chrome.action.setBadgeText({ text: String(titlesWithUpdates) })
     chrome.action.setBadgeBackgroundColor({ color: '#e94560' })
+    chrome.action.setBadgeTextColor({ color: '#ffffff' })
   } else {
     chrome.action.setBadgeText({ text: '' })
   }
