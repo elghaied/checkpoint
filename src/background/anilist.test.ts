@@ -113,6 +113,26 @@ describe('scorePair', () => {
   it('returns 0 for empty string pair', () => {
     expect(scorePair('', '')).toBe(0)
   })
+
+  it('scores high when all tokens match but word order/extras differ', () => {
+    // "the rising of shield hero" vs "the rising of the shield hero"
+    // All unique tokens are identical: {the, rising, of, shield, hero}
+    // Should score above 0.7 threshold
+    const score = scorePair('the rising of shield hero', 'the rising of the shield hero')
+    expect(score).toBeGreaterThanOrEqual(0.7)
+  })
+
+  it('scores moderately for partial token overlap', () => {
+    // "solo leveling" vs "tower of god" — no shared tokens
+    expect(scorePair('solo leveling', 'tower of god')).toBe(0)
+  })
+
+  it('scores proportionally for partial token overlap', () => {
+    // "the great swordmaster" vs "the lazy swordmaster" — 2/4 unique tokens match
+    const score = scorePair('the great swordmaster', 'the lazy swordmaster')
+    expect(score).toBeGreaterThan(0)
+    expect(score).toBeLessThan(0.7) // only 50% overlap
+  })
 })
 
 // ---------------------------------------------------------------------------

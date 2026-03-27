@@ -198,7 +198,8 @@ export function scorePair(a: string, b: string): number {
     if (spacelessA.includes(spacelessB) || spacelessB.includes(spacelessA)) return 0.7
   }
 
-  // Token overlap (Jaccard similarity), capped at 0.65
+  // Token overlap (Jaccard similarity), scaled to 0–0.9 range
+  // 100% overlap → 0.9, 80% → 0.72, 50% → 0.45, 0% → 0
   const tokensA = new Set(a.split(/[^a-z0-9]+/).filter(Boolean))
   const tokensB = new Set(b.split(/[^a-z0-9]+/).filter(Boolean))
   let intersection = 0
@@ -207,7 +208,7 @@ export function scorePair(a: string, b: string): number {
   }
   const union = new Set([...tokensA, ...tokensB]).size
   if (union === 0) return 0
-  return Math.min(intersection / union, 0.65)
+  return (intersection / union) * 0.9
 }
 
 /**
