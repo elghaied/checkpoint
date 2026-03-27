@@ -61,6 +61,7 @@ function makeTrackedItem(
     genres: [],
     tags: [],
     genresBackfilled: false,
+    pinned: false,
     ...overrides,
   }
 }

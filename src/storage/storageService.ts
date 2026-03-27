@@ -496,6 +496,7 @@ export class StorageService {
       comickHid: item.comickHid ?? null,
       comickSlug: item.comickSlug ?? null,
       anilistId: item.anilistId ?? null,
+      pinned: item.pinned ?? false,
     }))
 
     return {
@@ -552,6 +553,7 @@ export class StorageService {
           comickHid: (importItem as TrackedItem).comickHid ?? null,
           comickSlug: (importItem as TrackedItem).comickSlug ?? null,
           anilistId: (importItem as TrackedItem).anilistId ?? null,
+          pinned: (importItem as TrackedItem).pinned ?? false,
         }
 
         if (!existing) {

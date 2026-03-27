@@ -307,6 +307,7 @@ export function ConfirmPanel({ session, onComplete, onSavePendingReview, onClear
           comickHid: null,
           comickSlug: null,
           anilistId: null,
+          pinned: false,
         }
         // Enrich ComicK results with detail data
         if (item.provider === 'comick') {

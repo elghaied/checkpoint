@@ -54,6 +54,7 @@ function makeTrackedItem(
     comickHid: null,
     comickSlug: null,
     anilistId: null,
+    pinned: false,
     ...overrides,
   }
 }

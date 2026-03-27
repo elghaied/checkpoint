@@ -25,6 +25,7 @@ function makeItem(
     genres: opts.genres,
     tags: opts.tags,
     genresBackfilled: false,
+    pinned: false,
   }
 }
 

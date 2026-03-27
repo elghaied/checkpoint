@@ -53,6 +53,7 @@ function makeTrackedItem(overrides: Partial<TrackedItem> = {}): TrackedItem {
     genres: [],
     tags: [],
     genresBackfilled: false,
+    pinned: false,
     ...overrides,
   }
 }

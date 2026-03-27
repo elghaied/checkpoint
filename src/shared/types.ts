@@ -42,6 +42,8 @@ export interface TrackedItem {
   comickHid: string | null         // ComicK hid (stable unique ID)
   comickSlug: string | null        // ComicK slug (for API calls)
   anilistId: string | null         // AniList ID from ComicK links.al
+
+  pinned: boolean                  // Pin to top of list
 }
 
 // Extension settings
@@ -50,6 +52,7 @@ export interface ExtensionSettings {
   notifyOnlyNewReleases: boolean         // Only notify for chapters released AFTER tracking
   checkIntervalMinutes: number           // Default: 60
   exportVersion: number                  // Schema version for import/export
+  sortOrder: 'updatedAt' | 'alphabetical' | 'chaptersAhead' | 'createdAt'
 }
 
 // Default settings
@@ -58,6 +61,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   notifyOnlyNewReleases: true,
   checkIntervalMinutes: 60,
   exportVersion: 1,
+  sortOrder: 'updatedAt',
 }
 
 // Export/Import format
@@ -82,6 +86,7 @@ export interface ExportedItem {
   comickHid: string | null
   comickSlug: string | null
   anilistId: string | null
+  pinned: boolean
 }
 
 export interface ExportedData {

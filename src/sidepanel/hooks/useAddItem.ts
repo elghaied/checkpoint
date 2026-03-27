@@ -177,6 +177,7 @@ export function useAddItem(onSuccess: () => void) {
         comickHid,
         comickSlug,
         anilistId: anilistIdRef,
+        pinned: false,
       }
 
       await saveItem(item)
