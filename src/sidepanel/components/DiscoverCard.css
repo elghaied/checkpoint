@@ -1,0 +1,75 @@
+.discover-card {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--surface, #1a1a2e);
+  border: 1px solid var(--border, #2a2a4a);
+}
+
+.discover-card__cover {
+  width: 60px;
+  height: 85px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.discover-card__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.discover-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discover-card__meta {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted, #a0a0a0);
+}
+
+.discover-card__rating {
+  color: #f59e0b;
+}
+
+.discover-card__chapters {
+  font-size: 11px;
+  color: var(--text-muted, #a0a0a0);
+  margin: 0;
+}
+
+.discover-card__track {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--primary, #e94560);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--primary, #e94560);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.discover-card__track:hover:not(:disabled) {
+  background: var(--primary, #e94560);
+  color: white;
+}
+
+.discover-card__track--tracked {
+  border-color: var(--text-muted, #a0a0a0);
+  color: var(--text-muted, #a0a0a0);
+  cursor: default;
+}
