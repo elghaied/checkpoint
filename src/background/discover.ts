@@ -23,14 +23,25 @@ interface ComicKTrendingItem {
   hid: string
   slug: string
   title: string
-  cover_url: string
+  // /top endpoint uses md_covers instead of cover_url
+  cover_url?: string
+  md_covers?: Array<{ b2key: string; w: number; h: number }>
   country: string
-  status: number
+  status?: number
   last_chapter: number | null
-  rating: string | null
-  user_follow_count: number
+  rating?: string | null
+  user_follow_count?: number
+  view_count?: number
   md_titles: Array<{ title: string }>
   genres: number[]
+}
+
+function extractCoverUrl(item: ComicKTrendingItem): string {
+  if (item.cover_url) return item.cover_url
+  if (item.md_covers && item.md_covers.length > 0) {
+    return `https://meo.comick.pictures/${item.md_covers[0].b2key}-s.jpg`
+  }
+  return ''
 }
 
 function normalizeDiscoverItem(item: ComicKTrendingItem): DiscoverItem {
@@ -38,12 +49,12 @@ function normalizeDiscoverItem(item: ComicKTrendingItem): DiscoverItem {
     hid: item.hid,
     slug: item.slug,
     title: item.title,
-    coverUrl: item.cover_url || '',
+    coverUrl: extractCoverUrl(item),
     country: item.country,
-    status: item.status,
+    status: item.status ?? 0,
     lastChapter: item.last_chapter != null ? Math.floor(item.last_chapter) : null,
-    rating: item.rating,
-    followCount: item.user_follow_count ?? 0,
+    rating: item.rating ?? null,
+    followCount: item.user_follow_count ?? item.view_count ?? 0,
     altTitles: (item.md_titles ?? []).map((t) => t.title),
     genres: item.genres ?? [],
   }
@@ -73,8 +84,10 @@ export async function fetchTrending(comicTypes?: string[]): Promise<DiscoverItem
       return []
     }
 
-    const data: ComicKTrendingItem[] = await response.json()
-    const results = data.map(normalizeDiscoverItem)
+    const json = await response.json()
+    // /top returns { rank: [...], recentRank: [...], trending: {...} }
+    const data: ComicKTrendingItem[] = json.rank ?? json ?? []
+    const results = Array.isArray(data) ? data.map(normalizeDiscoverItem) : []
     trendingCache.set(cacheKey, results)
     log.debug('Fetched', results.length, 'trending items')
     return results
