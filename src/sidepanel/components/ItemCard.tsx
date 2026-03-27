@@ -14,6 +14,9 @@ interface ItemCardProps {
   onOpen: () => void
   onToggleNotifications?: (enabled: boolean) => void
   onTogglePin?: () => void
+  selectionMode?: boolean
+  selected?: boolean
+  onSelect?: () => void
 }
 
 function formatUpdatedAt(timestamp: number): string {
@@ -31,7 +34,7 @@ function formatUpdatedAt(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString()
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications, onTogglePin }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications, onTogglePin, selectionMode, selected, onSelect }) => {
   const [bellLoading, setBellLoading] = useState(false)
 
   const progressLabel =
@@ -62,6 +65,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
   return (
     <div className="item-card" style={{ animationDelay: `${Math.min(index, 10) * 0.05}s` }}>
       <div className="item-card__cover-wrap">
+        {selectionMode && (
+          <div className="item-card__checkbox" onClick={(e) => { e.stopPropagation(); onSelect?.() }}>
+            <input type="checkbox" checked={selected} readOnly />
+          </div>
+        )}
         <img
           className="item-card__cover"
           src={item.coverImage}

@@ -190,3 +190,21 @@
   border-radius: 2px;
   background: linear-gradient(90deg, var(--progress), #00b894);
 }
+
+.item-card__checkbox {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.item-card__checkbox input {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary, #e94560);
+}
