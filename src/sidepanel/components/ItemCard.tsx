@@ -79,16 +79,17 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
       <div className="item-card__info">
         <div className="item-card__header">
           <h3 className="item-card__title">{item.titles.main}</h3>
-          <button
-            className={`item-card__pin ${item.pinned ? 'item-card__pin--active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onTogglePin?.() }}
-            title={item.pinned ? 'Unpin' : 'Pin to top'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-            </svg>
-          </button>
-          <button
+          <div className="item-card__header-actions">
+            <button
+              className={`item-card__pin ${item.pinned ? 'item-card__pin--active' : ''}`}
+              onClick={(e) => { e.stopPropagation(); onTogglePin?.() }}
+              title={item.pinned ? 'Unpin' : 'Pin to top'}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+              </svg>
+            </button>
+            <button
             className={`item-card__bell ${item.notificationsEnabled ? 'item-card__bell--active' : ''}${bellLoading ? ' item-card__bell--loading' : ''}`}
             onClick={handleBellClick}
             disabled={bellLoading}
@@ -104,6 +105,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
               </svg>
             )}
           </button>
+          </div>
         </div>
         <GenreBadges genres={item.genres} />
         <div className="item-card__progress-row">

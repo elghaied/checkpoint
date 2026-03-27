@@ -44,22 +44,28 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, onConfirm, onC
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
           />
-          {suggestions.length > 0 && (
-            <div className="bulk-tag-modal__suggestions">
-              {suggestions.map((tag) => (
-                <button
-                  key={tag}
-                  className="bulk-tag-modal__suggestion"
-                  onClick={() => onConfirm(tag)}
-                >
-                  <span
-                    className="bulk-tag-modal__dot"
-                    style={{ backgroundColor: tagRegistry[tag]?.color ?? '#808080' }}
-                  />
-                  {tag}
-                </button>
-              ))}
-            </div>
+          {existingTags.length > 0 && (
+            <>
+              <p className="bulk-tag-modal__label">Existing tags</p>
+              <div className="bulk-tag-modal__suggestions">
+                {suggestions.map((tag) => (
+                  <button
+                    key={tag}
+                    className="bulk-tag-modal__suggestion"
+                    onClick={() => onConfirm(tag)}
+                  >
+                    <span
+                      className="bulk-tag-modal__dot"
+                      style={{ backgroundColor: tagRegistry[tag]?.color ?? '#808080' }}
+                    />
+                    {tag}
+                  </button>
+                ))}
+                {suggestions.length === 0 && (
+                  <p className="bulk-tag-modal__no-match">No matching tags</p>
+                )}
+              </div>
+            </>
           )}
         </div>
         <div className="modal__actions">

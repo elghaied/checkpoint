@@ -14,7 +14,12 @@ const DiscoverCard: React.FC<DiscoverCardProps> = ({ item, onTrack, isTracked })
 
   return (
     <div className="discover-card">
-      <img className="discover-card__cover" src={item.coverUrl} alt={item.title} />
+      <img
+        className="discover-card__cover"
+        src={item.coverUrl}
+        alt={item.title}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+      />
       <div className="discover-card__info">
         <h3 className="discover-card__title">{item.title}</h3>
         <div className="discover-card__meta">

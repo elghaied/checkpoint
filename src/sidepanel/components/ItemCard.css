@@ -54,8 +54,19 @@
 .item-card__header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
+}
+
+.item-card__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .item-card__pin {
