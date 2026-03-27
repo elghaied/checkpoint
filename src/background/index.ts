@@ -257,7 +257,7 @@ async function handleMessage(
       // Trigger backfill for imported items that may lack genres
       runGenreBackfill().catch((err) => log.error('Genre backfill after import failed:', err))
       // Reset ComicK migration flag so imported items get cross-referenced
-      chrome.storage.local.remove(MIGRATION_STORAGE_KEY)
+      await new Promise<void>((resolve) => chrome.storage.local.remove(MIGRATION_STORAGE_KEY, resolve))
       runSilentMigration().catch((err) => log.error('ComicK migration after import failed:', err))
       return result
     }
