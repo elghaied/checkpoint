@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalise, scorePair, collectTitles, matchTitle } from './anilist'
+import { normalise, scorePair, collectTitles, matchTitle, bestTitleScore } from './anilist'
 import type { AniListMedia } from '@/shared/types'
 
 // ---------------------------------------------------------------------------
@@ -235,5 +235,41 @@ describe('matchTitle', () => {
     const result = matchTitle('Solo Leveling', [media1, media2])
     expect(result).not.toBeNull()
     expect(result!.media.id).toBe(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// bestTitleScore
+// ---------------------------------------------------------------------------
+
+describe('bestTitleScore', () => {
+  it('returns 1.0 for exact match in both sets', () => {
+    expect(bestTitleScore(['Solo Leveling'], ['Solo Leveling'])).toBe(1.0)
+  })
+
+  it('finds best match across all combinations', () => {
+    const itemTitles = ['Geom Meongneun Swordmaster', 'Sword-Devouring Swordmaster']
+    const comickTitles = ['Sword Devouring Swordmaster']
+    const score = bestTitleScore(itemTitles, comickTitles)
+    expect(score).toBeGreaterThanOrEqual(0.7)
+  })
+
+  it('returns 0 when no titles overlap', () => {
+    expect(bestTitleScore(['Attack on Titan'], ['One Piece'])).toBe(0)
+  })
+
+  it('skips empty strings', () => {
+    expect(bestTitleScore(['', 'Solo Leveling'], ['Solo Leveling', ''])).toBe(1.0)
+  })
+
+  it('returns 0 for empty arrays', () => {
+    expect(bestTitleScore([], ['Solo Leveling'])).toBe(0)
+    expect(bestTitleScore(['Solo Leveling'], [])).toBe(0)
+  })
+
+  it('matches Korean title against romanized title', () => {
+    const itemTitles = ['나 혼자만 레벨업', 'Solo Leveling']
+    const comickTitles = ['Solo Leveling', 'Only I Level Up']
+    expect(bestTitleScore(itemTitles, comickTitles)).toBe(1.0)
   })
 })

@@ -187,12 +187,16 @@ export function scorePair(a: string, b: string): number {
   if (a.startsWith(b) || b.startsWith(a)) return 0.9
   if (a.includes(b) || b.includes(a)) return 0.7
 
-  // Space-stripped comparison for titles like "Rairairai" vs "Rai Rai Rai"
-  const spacelessA = a.replace(/ /g, '')
-  const spacelessB = b.replace(/ /g, '')
-  if (spacelessA === spacelessB) return 0.85
-  if (spacelessA.startsWith(spacelessB) || spacelessB.startsWith(spacelessA)) return 0.8
-  if (spacelessA.includes(spacelessB) || spacelessB.includes(spacelessA)) return 0.7
+  // Strip all non-alphanumeric for comparison (handles hyphens, spaces, etc.)
+  // e.g. "Sword-Devouring Swordmaster" vs "Sword Devouring Swordmaster"
+  // Guard: both must be non-empty after stripping (prevents false positives with non-Latin scripts)
+  const spacelessA = a.replace(/[^a-z0-9]/g, '')
+  const spacelessB = b.replace(/[^a-z0-9]/g, '')
+  if (spacelessA && spacelessB) {
+    if (spacelessA === spacelessB) return 0.85
+    if (spacelessA.startsWith(spacelessB) || spacelessB.startsWith(spacelessA)) return 0.8
+    if (spacelessA.includes(spacelessB) || spacelessB.includes(spacelessA)) return 0.7
+  }
 
   // Token overlap (Jaccard similarity), capped at 0.65
   const tokensA = new Set(a.split(/[^a-z0-9]+/).filter(Boolean))
@@ -204,6 +208,29 @@ export function scorePair(a: string, b: string): number {
   const union = new Set([...tokensA, ...tokensB]).size
   if (union === 0) return 0
   return Math.min(intersection / union, 0.65)
+}
+
+/**
+ * Score two sets of titles against each other.
+ * Returns the best scorePair() result across all combinations.
+ * Useful for comparing an item's full title set against a search result's full title set.
+ */
+export function bestTitleScore(titlesA: string[], titlesB: string[]): number {
+  let best = 0
+
+  for (const a of titlesA) {
+    const normA = normalise(a)
+    if (!normA) continue
+    for (const b of titlesB) {
+      const normB = normalise(b)
+      if (!normB) continue
+      const score = scorePair(normA, normB)
+      if (score > best) best = score
+      if (best === 1.0) return best
+    }
+  }
+
+  return best
 }
 
 /**
