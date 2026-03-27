@@ -8,7 +8,8 @@ interface BulkActionBarProps {
   onDelete: () => void
   onTag: () => void
   onAddToList: () => void
-  onToggleNotifications: () => void
+  onNotificationsOn: () => void
+  onNotificationsOff: () => void
   onCancel: () => void
 }
 
@@ -20,7 +21,8 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
   onDelete,
   onTag,
   onAddToList,
-  onToggleNotifications,
+  onNotificationsOn,
+  onNotificationsOff,
   onCancel,
 }) => {
   const allSelected = selectedCount === totalCount && totalCount > 0
@@ -46,8 +48,11 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
         <button className="bulk-bar__btn" onClick={onAddToList} disabled={selectedCount === 0} title="Add to list">
           Add to List
         </button>
-        <button className="bulk-bar__btn" onClick={onToggleNotifications} disabled={selectedCount === 0} title="Toggle notifications">
-          Notifications
+        <button className="bulk-bar__btn bulk-bar__btn--notify-on" onClick={onNotificationsOn} disabled={selectedCount === 0} title="Enable notifications">
+          Notify On
+        </button>
+        <button className="bulk-bar__btn bulk-bar__btn--notify-off" onClick={onNotificationsOff} disabled={selectedCount === 0} title="Disable notifications">
+          Notify Off
         </button>
         <button className="bulk-bar__btn bulk-bar__btn--cancel" onClick={onCancel}>
           Cancel

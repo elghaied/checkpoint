@@ -116,12 +116,9 @@ export default function App() {
     refresh()
   }
 
-  const handleBulkToggleNotifications = async () => {
+  const handleBulkNotifications = async (enabled: boolean) => {
     for (const id of selectedIds) {
-      const item = items.find((i) => i.providerId === id)
-      if (item) {
-        await updateItem(id, { notificationsEnabled: !item.notificationsEnabled })
-      }
+      await updateItem(id, { notificationsEnabled: enabled })
     }
     exitSelectionMode()
     refresh()
@@ -445,7 +442,8 @@ export default function App() {
               onDelete={handleBulkDelete}
               onTag={() => setShowBulkTagModal(true)}
               onAddToList={() => setShowBulkListModal(true)}
-              onToggleNotifications={handleBulkToggleNotifications}
+              onNotificationsOn={() => handleBulkNotifications(true)}
+              onNotificationsOff={() => handleBulkNotifications(false)}
               onCancel={exitSelectionMode}
             />
           )}
