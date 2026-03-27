@@ -1,13 +1,13 @@
 // Hourly chapter update checking logic
 
 import { storageService } from '@/storage'
-import { fetchBatchChapterInfo } from './anilist'
+import { fetchBatchChapterInfo, bestTitleScore } from './anilist'
 import { fetchBatchMangaDexInfo, searchMangaDex } from './mangadex'
 import { fetchBatchComicKInfo, searchComicK } from './comick'
 import type { ComicKChapterResult } from './comick'
 import { showNewChaptersNotification, showBatchNotification } from './notifications'
 import type { TrackedItem } from '@/shared/types'
-import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN } from '@/shared/constants'
+import { CHAPTER_CHECK_ALARM_NAME, CHAPTER_CHECK_INITIAL_DELAY_MIN, CONFIDENCE_THRESHOLD } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
 import { importActive } from './state'
 
@@ -17,17 +17,31 @@ const log = createLogger('chapters')
  * Search MangaDex by title to get chapter info as fallback.
  * Returns the best match's lastChapter if found.
  */
-async function getMangaDexChaptersByTitle(title: string): Promise<number | null> {
+async function getMangaDexChaptersByTitle(title: string, itemTitles: string[]): Promise<number | null> {
   try {
     const results = await searchMangaDex(title)
     if (results.length === 0) return null
 
-    // Use first result (best match)
-    const best = results[0]
-    if (!best.lastChapter) return null
+    let bestChapters: number | null = null
+    let bestScore = 0
 
-    const chapters = parseInt(best.lastChapter, 10)
-    return isNaN(chapters) ? null : chapters
+    for (const r of results) {
+      const score = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+      if (score > bestScore) {
+        bestScore = score
+        if (r.lastChapter) {
+          const chapters = parseInt(r.lastChapter, 10)
+          bestChapters = isNaN(chapters) ? null : chapters
+        }
+      }
+    }
+
+    if (bestScore < CONFIDENCE_THRESHOLD) {
+      log.warn('MangaDex fallback: best score', bestScore.toFixed(3), 'below threshold for', title)
+      return null
+    }
+
+    return bestChapters
   } catch (err) {
     log.error('MangaDex fallback search failed for', title, ':', err)
     return null
@@ -36,15 +50,30 @@ async function getMangaDexChaptersByTitle(title: string): Promise<number | null>
 
 /**
  * Search ComicK by title to get chapter info as fallback.
- * Returns the first result's lastChapter if found.
+ * Returns the best match's lastChapter if found.
  */
-async function getComicKChaptersByTitle(title: string): Promise<number | null> {
+async function getComicKChaptersByTitle(title: string, itemTitles: string[]): Promise<number | null> {
   try {
     const results = await searchComicK(title)
     if (results.length === 0) return null
 
-    const best = results[0]
-    return best.lastChapter ?? null
+    let bestChapters: number | null = null
+    let bestScore = 0
+
+    for (const r of results) {
+      const score = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+      if (score > bestScore) {
+        bestScore = score
+        bestChapters = r.lastChapter ?? null
+      }
+    }
+
+    if (bestScore < CONFIDENCE_THRESHOLD) {
+      log.warn('ComicK fallback: best score', bestScore.toFixed(3), 'below threshold for', title)
+      return null
+    }
+
+    return bestChapters
   } catch (err) {
     log.error('ComicK fallback search failed for', title, ':', err)
     return null
@@ -173,9 +202,10 @@ export async function handleChapterCheckAlarm(): Promise<void> {
       const batch = anilistNullChapterItems.slice(i, i + BATCH_SIZE)
       const batchResults = await Promise.allSettled(
         batch.map(async (item) => {
-          const comickChapters = await getComicKChaptersByTitle(item.titles.main)
+          const itemTitles = [item.titles.main, ...item.titles.alt]
+          const comickChapters = await getComicKChaptersByTitle(item.titles.main, itemTitles)
           if (comickChapters !== null) return comickChapters
-          return getMangaDexChaptersByTitle(item.titles.main)
+          return getMangaDexChaptersByTitle(item.titles.main, itemTitles)
         })
       )
 
