@@ -27,21 +27,25 @@ export interface MigrationResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Score a ComicK result's title against the tracked item's main title.
- * Checks main title + all alt titles on the ComicK result.
+ * Score a ComicK result against the tracked item by comparing ALL item titles
+ * (main + alt) against ALL ComicK titles (main + alt).
+ * Returns the best score across all combinations.
  */
 function scoreComicKResult(
-  itemTitle: string,
+  itemTitles: string[],
   comickTitle: string,
   comickAltTitles: string[]
 ): number {
-  const normItem = normalise(itemTitle)
-  const allTitles = [comickTitle, ...comickAltTitles]
+  const comickTitles = [comickTitle, ...comickAltTitles]
   let best = 0
 
-  for (const t of allTitles) {
-    const score = scorePair(normItem, normalise(t))
-    if (score > best) best = score
+  for (const itemT of itemTitles) {
+    const normItem = normalise(itemT)
+    if (!normItem) continue
+    for (const comickT of comickTitles) {
+      const score = scorePair(normItem, normalise(comickT))
+      if (score > best) best = score
+    }
   }
 
   return best
@@ -99,7 +103,7 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
         // Score all results from this query
         for (let j = 0; j < results.length; j++) {
           const r = results[j]
-          const score = scoreComicKResult(item.titles.main, r.title, r.altTitles)
+          const score = scoreComicKResult([item.titles.main, ...item.titles.alt], r.title, r.altTitles)
           if (score > bestScore) {
             bestScore = score
             bestIndex = searchResults.length + j
@@ -123,7 +127,7 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
       log.warn(`  Search returned ${searchResults.length} results (query: "${usedQuery}"):`, searchResults.slice(0, 5).map((r) => r.title).join(', '))
 
       for (const r of searchResults.slice(0, 5)) {
-        const score = scoreComicKResult(item.titles.main, r.title, r.altTitles)
+        const score = scoreComicKResult([item.titles.main, ...item.titles.alt], r.title, r.altTitles)
         log.warn(`    Score ${score.toFixed(3)} for "${r.title}" (slug: ${r.slug})`)
       }
 
