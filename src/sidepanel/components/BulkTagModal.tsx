@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CustomTagRegistry } from '@/shared/types'
+import TagColorPicker from './TagColorPicker'
 import './BulkTagModal.css'
 
 interface BulkTagModalProps {
   tagRegistry: CustomTagRegistry
-  onConfirm: (tagName: string) => void
+  getNextColor: () => string
+  onConfirm: (tagName: string, color: string) => void
   onClose: () => void
 }
 
-const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, onConfirm, onClose }) => {
+const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, getNextColor, onConfirm, onClose }) => {
   const [input, setInput] = useState('')
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [showColorPicker, setShowColorPicker] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -22,10 +26,18 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, onConfirm, onC
     !trimmed || t.toLowerCase().includes(trimmed.toLowerCase())
   )
 
-  const handleSubmit = () => {
+  const isNewTag = trimmed.length > 0 && !tagRegistry[trimmed]
+  const newTagColor = selectedColor ?? getNextColor()
+
+  const handleConfirmNew = () => {
     if (trimmed) {
-      onConfirm(trimmed)
+      const color = tagRegistry[trimmed]?.color ?? newTagColor
+      onConfirm(trimmed, color)
     }
+  }
+
+  const handleSelectExisting = (tag: string) => {
+    onConfirm(tag, tagRegistry[tag]?.color ?? getNextColor())
   }
 
   return (
@@ -35,15 +47,49 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, onConfirm, onC
           <h2>Add Tag to Selected Items</h2>
         </div>
         <div className="modal__body">
-          <input
-            ref={inputRef}
-            className="bulk-tag-modal__input"
-            type="text"
-            placeholder="Enter tag name..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
-          />
+          <div className="bulk-tag-modal__input-row">
+            <input
+              ref={inputRef}
+              className="bulk-tag-modal__input"
+              type="text"
+              placeholder="Enter tag name..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmNew() }}
+            />
+            {isNewTag && (
+              <div className="bulk-tag-modal__color-wrap">
+                <button
+                  type="button"
+                  className="bulk-tag-modal__color-btn"
+                  style={{ backgroundColor: newTagColor }}
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  title="Pick color"
+                />
+                {showColorPicker && (
+                  <TagColorPicker
+                    currentColor={newTagColor}
+                    onSelect={(color) => {
+                      setSelectedColor(color)
+                      setShowColorPicker(false)
+                    }}
+                    onClose={() => setShowColorPicker(false)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {isNewTag && (
+            <button
+              className="bulk-tag-modal__create"
+              onClick={handleConfirmNew}
+            >
+              <span className="bulk-tag-modal__dot" style={{ backgroundColor: newTagColor }} />
+              Create "{trimmed}"
+            </button>
+          )}
+
           {existingTags.length > 0 && (
             <>
               <p className="bulk-tag-modal__label">Existing tags</p>
@@ -52,7 +98,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, onConfirm, onC
                   <button
                     key={tag}
                     className="bulk-tag-modal__suggestion"
-                    onClick={() => onConfirm(tag)}
+                    onClick={() => handleSelectExisting(tag)}
                   >
                     <span
                       className="bulk-tag-modal__dot"
@@ -70,7 +116,6 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({ tagRegistry, onConfirm, onC
         </div>
         <div className="modal__actions">
           <button className="btn btn--secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn--primary" onClick={handleSubmit} disabled={!trimmed}>Add Tag</button>
         </div>
       </div>
     </div>

@@ -45,7 +45,7 @@ export default function App() {
   const { settings, updateSettings } = useSettings()
   const { items, loading, error, refresh } = useTrackedItems(undefined, settings.sortOrder)
   const addItem = useAddItem(refresh)
-  const { tags: tagRegistry } = useCustomTags()
+  const { tags: tagRegistry, updateTag, getNextColor } = useCustomTags()
   const filterPanel = useFilterPanel(items, activeTab)
   const backfillProgress = useBackfillProgress()
   const { pendingCount, importInProgress, openImportTab, dismissPending } = usePendingReview()
@@ -127,7 +127,10 @@ export default function App() {
     refresh()
   }
 
-  const handleBulkTag = async (tagName: string) => {
+  const handleBulkTag = async (tagName: string, color: string) => {
+    // Register the tag in the registry (ensures it shows in Tags tab)
+    await updateTag(tagName, { color })
+    // Add tag to all selected items
     for (const id of selectedIds) {
       const item = items.find((i) => i.providerId === id)
       if (item && !item.tags.includes(tagName)) {
@@ -494,6 +497,7 @@ export default function App() {
         {showBulkTagModal && (
           <BulkTagModal
             tagRegistry={tagRegistry}
+            getNextColor={getNextColor}
             onConfirm={handleBulkTag}
             onClose={() => setShowBulkTagModal(false)}
           />
