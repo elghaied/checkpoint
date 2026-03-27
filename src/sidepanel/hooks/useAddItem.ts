@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { TrackedItem, ComicKMedia, PageMetadata, UnifiedSearchResult } from '@/shared/types'
-import { extractMetadata, searchManga, saveItem, findByTitle } from '../services/messaging'
+import { extractMetadata, searchManga, saveItem, findByTitle, enrichComicK } from '../services/messaging'
 import { TOAST_DURATION_MS } from '@/shared/constants'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -123,12 +123,29 @@ export function useAddItem(onSuccess: () => void) {
       // Extract ComicK cross-reference fields if available
       let comickHid: string | null = null
       let comickSlug: string | null = null
-      const anilistIdRef: string | null = null
+      let anilistIdRef: string | null = null
+      let enrichedGenres: string[] = result.genres ?? []
 
       if (result.provider === 'comick') {
         const comickData = result.originalData as ComicKMedia
         comickHid = comickData.hid
         comickSlug = comickData.slug
+
+        // Enrich with detail data for richer alt titles + anilistId + genres
+        const enrichment = await enrichComicK(comickData.slug)
+        if (enrichment) {
+          comickHid = enrichment.hid
+          anilistIdRef = enrichment.anilistId
+          enrichedGenres = enrichment.genres.length > 0 ? enrichment.genres : enrichedGenres
+          // Merge enriched alt titles into altTitles (deduplicated)
+          const existingSet = new Set(altTitles.map((t) => t.toLowerCase().trim()))
+          for (const t of enrichment.altTitles) {
+            if (t && !existingSet.has(t.toLowerCase().trim())) {
+              altTitles.push(t)
+              existingSet.add(t.toLowerCase().trim())
+            }
+          }
+        }
       }
 
       const item: TrackedItem = {
@@ -154,9 +171,9 @@ export function useAddItem(onSuccess: () => void) {
         lastApiCheck: now,
         notificationsEnabled: false, // Off by default per user decision
         anilistStatus: providerStatus,
-        genres: result.genres ?? [],
+        genres: enrichedGenres,
         tags: [],
-        genresBackfilled: true, // genres came from the search result
+        genresBackfilled: enrichedGenres.length > 0,
         comickHid,
         comickSlug,
         anilistId: anilistIdRef,
