@@ -23,11 +23,11 @@
 <br />
 
 <p align="center">
-  <img src="screenshots/general-view.png" width="180" alt="Tracking list" />&nbsp;&nbsp;
-  <img src="screenshots/edit.png" width="180" alt="Edit modal" />&nbsp;&nbsp;
-  <img src="screenshots/filters.png" width="180" alt="Filters" />&nbsp;&nbsp;
-  <img src="screenshots/list-view.png" width="180" alt="Lists" />&nbsp;&nbsp;
-  <img src="screenshots/settings-view.png" width="180" alt="Settings" />
+  <img src="screenshots/general-view.png" width="160" alt="Tracking list" />&nbsp;
+  <img src="screenshots/Trending.png" width="160" alt="Discover trending" />&nbsp;
+  <img src="screenshots/bulk-selection.png" width="160" alt="Bulk actions" />&nbsp;
+  <img src="screenshots/filters.png" width="160" alt="Filters" />&nbsp;
+  <img src="screenshots/edit.png" width="160" alt="Edit modal" />
 </p>
 
 <br />
@@ -55,12 +55,20 @@ Everything is stored locally on your device. No accounts, no tracking, no analyt
 - **Pin to top** — Pin your favorite titles so they always appear at the top of your library, regardless of sort order.
 - **Sort controls** — Sort your library by Last Updated, Alphabetical (A-Z), Chapters Ahead, or Recently Added. Your preference persists across sessions.
 
+<p align="center">
+  <img src="screenshots/general-view.png" width="300" alt="Library with sort controls and pin icons" />
+</p>
+
 ### Discover
 
 Find new manga to read without leaving the extension.
 
 - **Trending** — Browse what's popular right now on ComicK, filterable by type (Manga, Manhwa, Manhua). One-click **Track** button to add to your library.
 - **For You** — Personalized recommendations based on the genres you read most. Checkpoint analyzes your tracked items and finds popular titles in your favorite genres.
+
+<p align="center">
+  <img src="screenshots/Trending.png" width="300" alt="Discover trending manga" />
+</p>
 
 ### Bulk Actions
 
@@ -70,6 +78,10 @@ Select multiple items at once for batch operations:
 - Check items individually or use **Select All**
 - Available actions: **Delete**, **Tag** (with color picker), **Add to List**, **Notify On/Off**
 - Tags added via bulk action are registered in the tag system with full color support
+
+<p align="center">
+  <img src="screenshots/bulk-selection.png" width="300" alt="Bulk selection with action bar" />
+</p>
 
 ### Organizing Your Library
 
@@ -120,6 +132,11 @@ Checkpoint checks for new chapter releases in the background and sends browser n
 - **Check interval** — How often to check (default: 60 minutes)
 - **Badge count** — The extension icon shows a red badge with the number of titles that have new chapters available (only titles with notifications enabled)
 - **Bulk control** — Use selection mode to enable/disable notifications for multiple titles at once
+
+<p align="center">
+  <img src="screenshots/Notification-card.png" width="300" alt="Browser notification for new chapters" />&nbsp;&nbsp;
+  <img src="screenshots/badge-count.png" width="60" alt="Badge showing 30 titles with updates" />
+</p>
 
 > **Note:** Chapter data comes from ComicK as the primary source, with AniList and MangaDex as fallbacks. ComicK provides reliable chapter counts for the vast majority of titles.
 
