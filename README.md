@@ -7,7 +7,7 @@
 <p align="center">
   Track your manga, manhwa, and manhua reading progress across any website.
   <br />
-  A Chrome Side Panel extension powered by AniList and MangaDex.
+  A Chrome Side Panel extension powered by ComicK, AniList, and MangaDex.
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 
 ## What is Checkpoint?
 
-Checkpoint lives in Chrome's side panel — it stays open next to your reading page so you never have to switch tabs. When you're on a manga site, hit the **+** button and Checkpoint auto-detects what you're reading and which chapter you're on. It looks up the title on AniList and MangaDex, grabs the cover art and metadata, and saves it to your local library. Next time you read a new chapter of the same title, add it again and your progress updates automatically (it never goes backwards).
+Checkpoint lives in Chrome's side panel — it stays open next to your reading page so you never have to switch tabs. When you're on a manga site, hit the **+** button and Checkpoint auto-detects what you're reading and which chapter you're on. It searches ComicK first (with AniList and MangaDex as fallbacks), grabs the cover art and metadata, and saves it to your local library. Next time you read a new chapter of the same title, add it again and your progress updates automatically (it never goes backwards).
 
 Everything is stored locally on your device. No accounts, no tracking, no analytics.
 
@@ -52,6 +52,24 @@ Everything is stored locally on your device. No accounts, no tracking, no analyt
 - **One-click tracking** — Navigate to any chapter on any manga site and click **+**. Checkpoint detects the title and chapter number automatically.
 - **Smart progress** — If you re-add a title at a higher chapter, your progress updates. It never goes backwards, so you can't accidentally lose your place.
 - **Continue reading** — Each title remembers where you were last reading. Click **Open** to jump right back.
+- **Pin to top** — Pin your favorite titles so they always appear at the top of your library, regardless of sort order.
+- **Sort controls** — Sort your library by Last Updated, Alphabetical (A-Z), Chapters Ahead, or Recently Added. Your preference persists across sessions.
+
+### Discover
+
+Find new manga to read without leaving the extension.
+
+- **Trending** — Browse what's popular right now on ComicK, filterable by type (Manga, Manhwa, Manhua). One-click **Track** button to add to your library.
+- **For You** — Personalized recommendations based on the genres you read most. Checkpoint analyzes your tracked items and finds popular titles in your favorite genres.
+
+### Bulk Actions
+
+Select multiple items at once for batch operations:
+
+- Click **Select** in the header to enter selection mode
+- Check items individually or use **Select All**
+- Available actions: **Delete**, **Tag** (with color picker), **Add to List**, **Notify On/Off**
+- Tags added via bulk action are registered in the tag system with full color support
 
 ### Organizing Your Library
 
@@ -95,14 +113,15 @@ The filter panel also works together with the **format tabs** (All, Manga, Manhw
 
 ### Notifications
 
-Checkpoint can check for new chapter releases in the background and send you a browser notification when something you're tracking gets updated.
+Checkpoint checks for new chapter releases in the background and sends browser notifications when titles you're tracking get updated.
 
-- **Enable notifications** — Master toggle in Settings
+- **Enable notifications** — Master toggle in Settings, plus per-title control via the bell icon on each card
 - **Smart notifications** — Only notify for chapters released *after* you started tracking (so you don't get flooded with old releases)
 - **Check interval** — How often to check (default: 60 minutes)
-- **Per-title control** — Toggle notifications for individual titles in the Edit modal
+- **Badge count** — The extension icon shows a red badge with the number of titles that have new chapters available (only titles with notifications enabled)
+- **Bulk control** — Use selection mode to enable/disable notifications for multiple titles at once
 
-> **Note:** Chapter counts come from AniList and MangaDex APIs, which can have incomplete or delayed data for some series. Notifications may occasionally miss releases.
+> **Note:** Chapter data comes from ComicK as the primary source, with AniList and MangaDex as fallbacks. ComicK provides reliable chapter counts for the vast majority of titles.
 
 ### CSV Bulk Import
 
@@ -141,7 +160,7 @@ Solo Leveling,200,https://manganato.com/manga-dr980474/chapter-200,action
   <img src="screenshots/import-csv-step-1-preview.png" width="600" alt="CSV upload preview" />
 </p>
 
-2. **Matching** — Checkpoint searches AniList and MangaDex for each title. A progress bar shows how far along it is. You can pause and resume at any time — your progress is saved even if you close the tab.
+2. **Matching** — Checkpoint searches ComicK, AniList, and MangaDex for each title. A progress bar shows how far along it is. You can pause and resume at any time — your progress is saved even if you close the tab.
 
 3. **Review** — See all results in a table with color-coded confidence levels:
    - **Green** = high confidence match
@@ -189,7 +208,7 @@ Checkpoint works on most manga reading sites including MangaDex, Webtoon, Tapas,
 | **UI** | React 19, BEM CSS |
 | **Language** | TypeScript (strict mode) |
 | **Build** | Vite + custom esbuild plugin for content script IIFE bundling |
-| **APIs** | AniList GraphQL, MangaDex REST |
+| **APIs** | ComicK REST (primary), AniList GraphQL, MangaDex REST |
 | **Testing** | Vitest |
 | **CI/CD** | GitHub Actions (typecheck, lint, test on push/PR; auto-release on tags) |
 
@@ -201,9 +220,10 @@ Four execution contexts communicating via `chrome.runtime.sendMessage`:
 Side Panel (React UI)     Import Tab (React UI)
        ↕                         ↕
 Background Service Worker ← Alarms (hourly chapter checks)
-       ↕                  ← AniList GraphQL API
-Content Script            ← MangaDex REST API
-(DOM metadata extraction) ← Chrome Storage (local)
+       ↕                  ← ComicK REST API (primary)
+Content Script            ← AniList GraphQL API (fallback)
+(DOM metadata extraction) ← MangaDex REST API (fallback)
+                          ← Chrome Storage (local)
 ```
 
 | Context | Entry Point | Role |
@@ -217,8 +237,10 @@ Content Script            ← MangaDex REST API
 
 - **Serialization queue** in storage layer prevents race conditions on concurrent mutations
 - **TTL cache** (5-min expiry, 100-entry limit) avoids redundant API calls
-- **Confidence scoring** uses Levenshtein distance with Jaccard token-overlap fallback; results below 0.7 threshold prompt user selection (bulk import uses stricter 0.85/0.50 green/yellow thresholds)
-- **Sliding window rate limiter** enforces 75 requests/minute during CSV import to stay within AniList's 90/min ceiling
+- **Confidence scoring** uses Levenshtein distance with Jaccard token-overlap; ComicK and AniList results get a position-based confidence boost (trusting their search ranking for typo tolerance); results below 0.7 threshold prompt user selection
+- **ComicK enrichment** fetches detail data (alt titles, genres, AniList cross-reference) at save time for richer metadata
+- **Silent migration** cross-references existing AniList/MangaDex items with ComicK on startup, adding `comickSlug` for better chapter checking
+- **Sliding window rate limiter** enforces 75 requests/minute during CSV import to stay within API rate limits
 - **Content script** is injected on-demand (not on every page) and bundled as IIFE to avoid ES module restrictions
 - **Tri-state filter engine** evaluates AND/OR/Exclude logic per filter entry, composable across genres, tags, and format
 
@@ -227,7 +249,7 @@ Content Script            ← MangaDex REST API
 ```
 src/
 ├── sidepanel/           # Side Panel React UI
-│   ├── components/      # NavRail, ItemCard, FilterPanel, EditModal, ImportBanner, etc.
+│   ├── components/      # NavRail, ItemCard, FilterPanel, EditModal, DiscoverView, BulkActionBar, etc.
 │   ├── hooks/           # useTrackedItems, useAddItem, useFilterPanel, useCustomTags, etc.
 │   ├── services/        # Typed chrome.runtime.sendMessage wrapper
 │   └── styles/          # Global CSS with BEM design tokens
@@ -239,11 +261,14 @@ src/
 │   └── confirmLogic.ts  # Tier classification, duplicate detection, diagnostic CSV export
 ├── background/          # Service Worker
 │   ├── index.ts         # Message router
-│   ├── searchService.ts # Multi-provider search with confidence scoring
-│   ├── chapterChecker.ts# Alarm-based batch chapter checking
+│   ├── searchService.ts # Multi-provider search (ComicK → AniList → MangaDex)
+│   ├── chapterChecker.ts# Alarm-based batch chapter checking + badge updates
+│   ├── comick.ts        # ComicK REST client (primary provider)
+│   ├── anilist.ts       # AniList GraphQL client (fallback)
+│   ├── mangadex.ts      # MangaDex REST client (fallback)
+│   ├── discover.ts      # Trending + For You recommendation engine
+│   ├── migration.ts     # Silent ComicK cross-reference migration
 │   ├── rateLimiter.ts   # Sliding window rate limiter for import API calls
-│   ├── anilist.ts       # AniList GraphQL client
-│   ├── mangadex.ts      # MangaDex REST client
 │   ├── cache.ts         # TTLCache with LRU eviction
 │   └── retry.ts         # Exponential backoff for fetch
 ├── content/             # Content Script (IIFE)
@@ -297,7 +322,7 @@ MIT - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-[AniList](https://anilist.co) and [MangaDex](https://mangadex.org) for their free APIs.
+[ComicK](https://comick.io), [AniList](https://anilist.co), and [MangaDex](https://mangadex.org) for their free APIs.
 
 ---
 
