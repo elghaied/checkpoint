@@ -89,6 +89,8 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
         if (results.length === 0) continue
 
         // Score all results from this query
+        // No position boost for migration — it's automated with no user to correct mistakes.
+        // Migration relies on strict token scoring + AniList ID verification.
         for (let j = 0; j < results.length; j++) {
           const r = results[j]
           const score = scoreComicKResult([item.titles.main, ...item.titles.alt], r.title, r.altTitles)

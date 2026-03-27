@@ -26,11 +26,14 @@ async function fetchFallbackGenres(item: TrackedItem): Promise<string[]> {
     }
   }
 
-  // Try ComicK search by title (scored)
+  // Try ComicK search by title (with position boost — ComicK ranking is reliable)
   try {
     const results = await searchComicK(item.titles.main)
-    for (const r of results) {
-      const score = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+    const positionBoosts = [0.85, 0.75, 0.65]
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
+      const tokenScore = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+      const score = i < positionBoosts.length ? Math.max(tokenScore, positionBoosts[i]) : tokenScore
       if (score >= CONFIDENCE_THRESHOLD) {
         const detail = await fetchComicDetail(r.slug)
         if (detail && detail.genres.length > 0) return detail.genres

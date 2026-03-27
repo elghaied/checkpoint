@@ -24,15 +24,36 @@ function calculateConfidence(extractedTitle: string, titles: string[]): number {
 }
 
 /**
+ * Boost confidence for top-ranked results from providers with reliable search ranking.
+ * ComicK and AniList both have good relevance-sorted search — their #1 result is almost
+ * always correct even with typos and missing words. MangaDex ranking is unreliable and
+ * should NOT use this boost.
+ *
+ * Position 0 (result #1) → max(tokenScore, 0.85)
+ * Position 1 (result #2) → max(tokenScore, 0.75)
+ * Position 2 (result #3) → max(tokenScore, 0.65)
+ * Position 3+             → tokenScore only
+ */
+const POSITION_BOOSTS = [0.85, 0.75, 0.65]
+
+function applyPositionBoost(index: number, tokenScore: number): number {
+  const boost = POSITION_BOOSTS[index]
+  return boost !== undefined ? Math.max(tokenScore, boost) : tokenScore
+}
+
+/**
  * Convert AniList results to unified format with confidence scores.
+ * AniList uses `sort: SEARCH_MATCH` which provides reliable relevance ranking,
+ * so top results get a position-based confidence boost.
  */
 function normalizeAniListResults(
   results: AniListMedia[],
   extractedTitle: string
 ): UnifiedSearchResult[] {
-  return results.map((media) => {
+  return results.map((media, index) => {
     const titles = collectTitles(media)
-    const confidence = calculateConfidence(extractedTitle, titles)
+    const tokenScore = calculateConfidence(extractedTitle, titles)
+    const confidence = applyPositionBoost(index, tokenScore)
 
     return {
       provider: 'anilist' as const,
@@ -86,13 +107,16 @@ function normalizeMangaDexResults(
 
 /**
  * Convert ComicK results to unified format with confidence scores.
+ * ComicK has reliable fuzzy search ranking (handles typos, prefix matching),
+ * so top results get a position-based confidence boost.
  */
 function normalizeComicKResults(
   results: ComicKMedia[],
   extractedTitle: string
 ): UnifiedSearchResult[] {
-  return results.map((media) => {
-    const confidence = calculateConfidence(extractedTitle, [media.title, ...media.altTitles])
+  return results.map((media, index) => {
+    const tokenScore = calculateConfidence(extractedTitle, [media.title, ...media.altTitles])
+    const confidence = applyPositionBoost(index, tokenScore)
 
     return {
       provider: 'comick' as const,

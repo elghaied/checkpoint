@@ -193,26 +193,11 @@ describe('searchWithFallback', () => {
   // Scenario 3: Low-confidence AniList return
   // -------------------------------------------------------------------------
 
-  describe('Low-confidence AniList results (none meet threshold)', () => {
-    it('returns top 5 low-confidence results when AniList has results below threshold', async () => {
-      // "Attack on Titan" vs extractedTitle "Solo Leveling" → score 0, but we need
-      // some score > 0 so they show up. Use titles that are substrings of each other
-      // at a low level. Actually scorePair returns 0 for unrelated titles, so those
-      // items won't be returned (they score 0). Let's use titles that share a substring.
-      // "Solo" is only 4 chars and is contained in "Solo Adventure" etc.
-      // scorePair("solo leveling", "solo adventure") → "solo" in "solo leveling"? no
-      // Actually "solo adventure".includes("solo leveling") is false,
-      // "solo leveling".includes("solo adventure") is false → score 0.
-      // We need something where one contains the other but below 0.7.
-      // scorePair only has tiers: 1.0, 0.9, 0.85, 0.8, 0.7, 0.
-      // 0.7 IS the threshold. Items scoring exactly 0.7 pass the threshold.
-      // So to get low-confidence (below threshold), items must score 0 — meaning
-      // no containment relationship. But then they'd still be in normalizedAnilist
-      // with confidence 0, and the code returns them as low-confidence.
-      // The code: if normalizedAnilist.length > 0 return top 5 sorted by confidence.
-      // So any AniList results that come back (even with 0 confidence) are returned
-      // when there are no above-threshold results.
-
+  describe('AniList results with position boost', () => {
+    it('returns top AniList results even when titles do not token-match (position boost)', async () => {
+      // AniList uses SEARCH_MATCH ranking — top results are trusted.
+      // Position boost: #1→0.85, #2→0.75, #3→0.65, #4+→token score only.
+      // Even unrelated titles pass threshold at positions 1-3 because we trust AniList's ranking.
       const mediaItems = [
         makeAniListMedia(1, 'Attack on Titan'),
         makeAniListMedia(2, 'Demon Slayer'),
@@ -225,9 +210,11 @@ describe('searchWithFallback', () => {
 
       const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
 
-      // Should cap at MAX_LOW_CONFIDENCE_RESULTS (5)
-      expect(results).toHaveLength(5)
-      // MangaDex should NOT be called since AniList returned results (even low-confidence)
+      // Top 3 pass threshold via position boost (0.85, 0.75, 0.65)
+      // Results 4-6 have 0 token score and no boost → below threshold
+      // Only the 2 above-threshold results are returned (0.85 and 0.75 pass 0.7)
+      expect(results.length).toBeGreaterThanOrEqual(2)
+      expect(results[0].confidence).toBe(0.85)
       expect(mockSearchMangaDex).not.toHaveBeenCalled()
     })
 
@@ -239,6 +226,7 @@ describe('searchWithFallback', () => {
 
       const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
 
+      // Both get position boost (0.85, 0.75) → both above threshold
       expect(results).toHaveLength(2)
       expect(mockSearchMangaDex).not.toHaveBeenCalled()
     })

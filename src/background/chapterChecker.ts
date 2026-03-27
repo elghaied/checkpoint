@@ -57,11 +57,15 @@ async function getComicKChaptersByTitle(title: string, itemTitles: string[]): Pr
     const results = await searchComicK(title)
     if (results.length === 0) return null
 
+    // ComicK has reliable search ranking — boost top results
+    const positionBoosts = [0.85, 0.75, 0.65]
     let bestChapters: number | null = null
     let bestScore = 0
 
-    for (const r of results) {
-      const score = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
+      const tokenScore = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+      const score = i < positionBoosts.length ? Math.max(tokenScore, positionBoosts[i]) : tokenScore
       if (score > bestScore) {
         bestScore = score
         bestChapters = r.lastChapter ?? null
