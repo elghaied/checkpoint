@@ -5,7 +5,7 @@ import { searchComicK, enrichComicKResult } from './comick'
 import { fetchTrending, computeForYou } from './discover'
 import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
-import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
+import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck, updateBadge } from './chapterChecker'
 import { runGenreBackfill } from './genreBackfill'
 import { runSilentMigration, runPostImportEnrichment } from './migration'
 import type { MessageRequest, ExportedData } from '@/shared/types'
@@ -55,6 +55,9 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 
 // Set up chapter check alarm
 setupChapterCheckAlarm()
+
+// Update badge on startup
+updateBadge().catch((err) => log.error('Badge update failed:', err))
 
 // Run genre backfill for existing items (non-blocking)
 runGenreBackfill().catch((err) => log.error('Genre backfill failed:', err))
@@ -225,6 +228,8 @@ async function handleMessage(
           // Update notification baseline to current known chapters
           chaptersWhenAdded: existing.latestKnownChapters ?? existing.chaptersWhenAdded,
         })
+        // Update badge since chapters-ahead changed
+        updateBadge().catch(() => {})
       }
       return null
     }

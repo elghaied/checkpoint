@@ -374,6 +374,33 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   }
 
   log.info('Check complete')
+
+  // Update extension badge with total chapters ahead
+  await updateBadge()
+}
+
+/**
+ * Update the extension icon badge with total chapters ahead across all items.
+ */
+export async function updateBadge(): Promise<void> {
+  const allItems = await storageService.getAll()
+  let totalAhead = 0
+
+  for (const item of allItems) {
+    if (item.latestKnownChapters != null && item.latestKnownChapters > 0) {
+      const progress = parseFloat(item.progress.value) || 0
+      const ahead = item.latestKnownChapters - progress
+      if (ahead > 0) totalAhead += Math.round(ahead)
+    }
+  }
+
+  if (totalAhead > 0) {
+    const text = totalAhead > 999 ? '999+' : String(totalAhead)
+    chrome.action.setBadgeText({ text })
+    chrome.action.setBadgeBackgroundColor({ color: '#e94560' })
+  } else {
+    chrome.action.setBadgeText({ text: '' })
+  }
 }
 
 /**
