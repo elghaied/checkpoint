@@ -6,6 +6,7 @@ import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
 import { runGenreBackfill } from './genreBackfill'
+import { runSilentMigration } from './migration'
 import type { MessageRequest, ExportedData } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
@@ -25,6 +26,9 @@ setupChapterCheckAlarm()
 
 // Run genre backfill for existing items (non-blocking)
 runGenreBackfill().catch((err) => log.error('Genre backfill failed:', err))
+
+// Run silent ComicK migration (non-blocking, after backfill)
+runSilentMigration().catch((err) => log.error('ComicK migration failed:', err))
 
 // Listen for alarm events
 chrome.alarms.onAlarm.addListener((alarm) => {
