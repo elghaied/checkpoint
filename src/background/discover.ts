@@ -39,7 +39,11 @@ interface ComicKTrendingItem {
 function extractCoverUrl(item: ComicKTrendingItem): string {
   if (item.cover_url) return item.cover_url
   if (item.md_covers && item.md_covers.length > 0) {
-    return `https://meo.comick.pictures/${item.md_covers[0].b2key}-s.jpg`
+    // b2key is like "l6w430.jpg" — insert "-s" before the extension for small thumbnail
+    const b2key = item.md_covers[0].b2key
+    const dotIndex = b2key.lastIndexOf('.')
+    const thumbKey = dotIndex > 0 ? `${b2key.slice(0, dotIndex)}-s${b2key.slice(dotIndex)}` : `${b2key}-s`
+    return `https://meo.comick.pictures/${thumbKey}`
   }
   return ''
 }
