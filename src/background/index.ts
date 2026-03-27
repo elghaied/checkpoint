@@ -13,8 +13,39 @@ import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RE
 import { createLogger } from '@/shared/logger'
 import { RateLimiter } from './rateLimiter'
 import { setImportActive } from './state'
+import { getNextTagColor } from '@/shared/tagColors'
 
 const log = createLogger('background')
+
+/**
+ * Sync orphan tags: items may have tags in their tags[] arrays that aren't
+ * registered in the customTags registry (e.g., after importing a backup with
+ * an empty or missing customTags object). This scans all items and registers
+ * any missing tags with auto-assigned colors.
+ */
+async function syncOrphanTags(): Promise<void> {
+  const items = await storageService.getAll()
+  const registry = await storageService.getCustomTags()
+
+  const orphanTags = new Set<string>()
+  for (const item of items) {
+    for (const tag of item.tags ?? []) {
+      if (tag && !(tag in registry)) {
+        orphanTags.add(tag)
+      }
+    }
+  }
+
+  if (orphanTags.size === 0) return
+
+  log.info('Syncing', orphanTags.size, 'orphan tags to registry')
+  const updated = { ...registry }
+  for (const tag of orphanTags) {
+    const color = getNextTagColor(updated)
+    await storageService.saveCustomTag(tag, color)
+    updated[tag] = { color }
+  }
+}
 const importRateLimiter = new RateLimiter(IMPORT_RATE_LIMIT_PER_MINUTE)
 
 log.info('Checkpoint service worker started')
@@ -30,6 +61,9 @@ runGenreBackfill().catch((err) => log.error('Genre backfill failed:', err))
 
 // Run silent ComicK migration (non-blocking, after backfill)
 runSilentMigration().catch((err) => log.error('ComicK migration failed:', err))
+
+// Sync orphan tags on startup
+syncOrphanTags().catch((err) => log.error('Tag sync failed:', err))
 
 // Listen for alarm events
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -281,6 +315,8 @@ async function handleMessage(
       runSilentMigration().catch((err) => log.error('ComicK migration after import failed:', err))
       // Enrich items that already have comickSlug but sparse alt titles
       runPostImportEnrichment().catch((err) => log.error('Post-import enrichment failed:', err))
+      // Sync orphan item tags to the tag registry (items may have tags not in customTags)
+      syncOrphanTags().catch((err) => log.error('Tag sync after import failed:', err))
       return result
     }
 
