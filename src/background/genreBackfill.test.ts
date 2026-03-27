@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { runGenreBackfill } from './genreBackfill'
 import { storageService } from '@/storage'
-import { fetchBatchChapterInfo, searchAniList } from './anilist'
+import { fetchBatchChapterInfo, searchAniList, bestTitleScore } from './anilist'
 import { searchMangaDex } from './mangadex'
 import type { TrackedItem, AniListMedia, MangaDexMedia } from '@/shared/types'
 
@@ -20,6 +20,7 @@ vi.mock('@/storage', () => ({
 vi.mock('./anilist', () => ({
   fetchBatchChapterInfo: vi.fn(),
   searchAniList: vi.fn(),
+  bestTitleScore: vi.fn(),
 }))
 
 vi.mock('./mangadex', () => ({
@@ -32,6 +33,7 @@ const mockWriteBackfillProgress = vi.mocked(storageService.writeBackfillProgress
 const mockFetchBatchChapterInfo = vi.mocked(fetchBatchChapterInfo)
 const mockSearchAniList = vi.mocked(searchAniList)
 const mockSearchMangaDex = vi.mocked(searchMangaDex)
+const mockBestTitleScore = vi.mocked(bestTitleScore)
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -103,6 +105,7 @@ describe('runGenreBackfill', () => {
     mockFetchBatchChapterInfo.mockResolvedValue(new Map())
     mockSearchAniList.mockResolvedValue([])
     mockSearchMangaDex.mockResolvedValue([])
+    mockBestTitleScore.mockReturnValue(1)
   })
 
   // -------------------------------------------------------------------------

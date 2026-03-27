@@ -1,9 +1,9 @@
 import { storageService } from '@/storage'
-import { fetchBatchChapterInfo, searchAniList } from './anilist'
+import { fetchBatchChapterInfo, searchAniList, bestTitleScore } from './anilist'
 import { searchMangaDex } from './mangadex'
 import { fetchComicDetail, searchComicK } from './comick'
 import { createLogger } from '@/shared/logger'
-import { BACKFILL_BATCH_SIZE, BACKFILL_BATCH_DELAY_MS } from '@/shared/constants'
+import { BACKFILL_BATCH_SIZE, BACKFILL_BATCH_DELAY_MS, CONFIDENCE_THRESHOLD } from '@/shared/constants'
 import type { TrackedItem } from '@/shared/types'
 
 const log = createLogger('genreBackfill')
@@ -14,6 +14,8 @@ const log = createLogger('genreBackfill')
  * then the opposite provider (MangaDex for AniList/ComicK items, AniList for MangaDex items).
  */
 async function fetchFallbackGenres(item: TrackedItem): Promise<string[]> {
+  const itemTitles = [item.titles.main, ...item.titles.alt]
+
   // Try ComicK first (best genre data)
   if (item.comickSlug) {
     try {
@@ -24,12 +26,15 @@ async function fetchFallbackGenres(item: TrackedItem): Promise<string[]> {
     }
   }
 
-  // Try ComicK search by title
+  // Try ComicK search by title (scored)
   try {
     const results = await searchComicK(item.titles.main)
-    if (results.length > 0) {
-      const detail = await fetchComicDetail(results[0].slug)
-      if (detail && detail.genres.length > 0) return detail.genres
+    for (const r of results) {
+      const score = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+      if (score >= CONFIDENCE_THRESHOLD) {
+        const detail = await fetchComicDetail(r.slug)
+        if (detail && detail.genres.length > 0) return detail.genres
+      }
     }
   } catch {
     // ComicK unavailable, continue to other providers
@@ -38,7 +43,12 @@ async function fetchFallbackGenres(item: TrackedItem): Promise<string[]> {
   if (item.provider === 'anilist' || item.provider === 'comick') {
     try {
       const results = await searchMangaDex(item.titles.main)
-      if (results.length > 0 && results[0].genres.length > 0) return results[0].genres
+      for (const r of results) {
+        const score = bestTitleScore(itemTitles, [r.title, ...r.altTitles])
+        if (score >= CONFIDENCE_THRESHOLD && r.genres.length > 0) {
+          return r.genres
+        }
+      }
     } catch (err) {
       log.error('MangaDex fallback failed for', item.titles.main, ':', err)
     }
@@ -47,7 +57,13 @@ async function fetchFallbackGenres(item: TrackedItem): Promise<string[]> {
   if (item.provider === 'mangadex') {
     try {
       const results = await searchAniList(item.titles.main)
-      if (results.length > 0 && results[0].genres.length > 0) return results[0].genres
+      for (const r of results) {
+        const anilistTitles = [r.title.romaji, r.title.english ?? '', r.title.native ?? '', ...r.synonyms]
+        const score = bestTitleScore(itemTitles, anilistTitles)
+        if (score >= CONFIDENCE_THRESHOLD && r.genres.length > 0) {
+          return r.genres
+        }
+      }
     } catch (err) {
       log.error('AniList fallback failed for', item.titles.main, ':', err)
     }
