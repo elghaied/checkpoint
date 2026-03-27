@@ -2,29 +2,68 @@
   position: relative;
 }
 
-.sort-dropdown__select {
-  appearance: none;
-  background-color: rgba(0, 0, 0, 0.2);
-  color: var(--text-primary, #eaeaea);
+.sort-dropdown__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  height: 36px;
   border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
   border-radius: 10px;
-  padding: 6px 28px 6px 10px;
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  color: var(--text-secondary, #a0a0a0);
   font-size: 12px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
   cursor: pointer;
-  height: 36px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%23a0a0a0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
 }
 
-.sort-dropdown__select:focus {
-  outline: none;
-  border-color: var(--accent, #e94560);
-  box-shadow: 0 0 0 3px var(--accent-glow, rgba(233, 69, 96, 0.12));
-}
-
-.sort-dropdown__select:hover {
+.sort-dropdown__trigger:hover {
   border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #eaeaea);
+}
+
+.sort-dropdown__chevron {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.sort-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 160px;
+  background-color: var(--bg-secondary, #16213e);
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: modalIn 0.15s ease-out;
+}
+
+.sort-dropdown__option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary, #a0a0a0);
+  font-size: 13px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sort-dropdown__option:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary, #eaeaea);
+}
+
+.sort-dropdown__option--active {
+  color: var(--accent, #e94560);
+  font-weight: 600;
 }

@@ -21,6 +21,8 @@ import type { NavView } from './components/NavRail'
 import TagsView from './components/TagsView'
 import DiscoverView from './components/DiscoverView'
 import BulkActionBar from './components/BulkActionBar'
+import BulkTagModal from './components/BulkTagModal'
+import BulkListModal from './components/BulkListModal'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { useSettings } from './hooks/useSettings'
@@ -54,6 +56,8 @@ export default function App() {
   } | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showBulkTagModal, setShowBulkTagModal] = useState(false)
+  const [showBulkListModal, setShowBulkListModal] = useState(false)
 
   // Lists state
   const { lists, refresh: refreshLists, createList, updateList, deleteList } = useCustomLists()
@@ -123,36 +127,24 @@ export default function App() {
     refresh()
   }
 
-  const handleBulkTag = async () => {
-    const tagName = prompt('Enter tag name to add:')
-    if (!tagName?.trim()) return
+  const handleBulkTag = async (tagName: string) => {
     for (const id of selectedIds) {
       const item = items.find((i) => i.providerId === id)
-      if (item && !item.tags.includes(tagName.trim())) {
-        await updateItem(id, { tags: [...item.tags, tagName.trim()] })
+      if (item && !item.tags.includes(tagName)) {
+        await updateItem(id, { tags: [...item.tags, tagName] })
       }
     }
+    setShowBulkTagModal(false)
     exitSelectionMode()
     refresh()
   }
 
-  const handleBulkAddToList = async () => {
-    const manualLists = lists.filter((l) => l.type === 'manual')
-    if (manualLists.length === 0) {
-      alert('No lists available. Create a list first.')
-      return
-    }
-    const listNames = manualLists.map((l, i) => `${i + 1}. ${l.name}`).join('\n')
-    const input = prompt(`Add to list:\n${listNames}\n\nEnter list number:`)
-    if (!input) return
-    const listIndex = parseInt(input, 10) - 1
-    const targetList = manualLists[listIndex]
-    if (!targetList) {
-      alert('Invalid list number.')
-      return
-    }
+  const handleBulkAddToList = async (listId: string) => {
+    const targetList = lists.find((l) => l.id === listId)
+    if (!targetList) return
     const newIds = [...new Set([...targetList.itemIds, ...selectedIds])]
     await updateList(targetList.id, { itemIds: newIds })
+    setShowBulkListModal(false)
     exitSelectionMode()
     refreshLists()
   }
@@ -448,8 +440,8 @@ export default function App() {
               onSelectAll={() => setSelectedIds(new Set(displayItems.map((i) => i.providerId)))}
               onDeselectAll={() => setSelectedIds(new Set())}
               onDelete={handleBulkDelete}
-              onTag={handleBulkTag}
-              onAddToList={handleBulkAddToList}
+              onTag={() => setShowBulkTagModal(true)}
+              onAddToList={() => setShowBulkListModal(true)}
               onToggleNotifications={handleBulkToggleNotifications}
               onCancel={exitSelectionMode}
             />
@@ -498,6 +490,20 @@ export default function App() {
               onClose={() => setEditingItem(null)}
             />
           </ErrorBoundary>
+        )}
+        {showBulkTagModal && (
+          <BulkTagModal
+            tagRegistry={tagRegistry}
+            onConfirm={handleBulkTag}
+            onClose={() => setShowBulkTagModal(false)}
+          />
+        )}
+        {showBulkListModal && (
+          <BulkListModal
+            lists={lists}
+            onSelect={handleBulkAddToList}
+            onClose={() => setShowBulkListModal(false)}
+          />
         )}
       </>
     )

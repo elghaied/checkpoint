@@ -1,0 +1,48 @@
+.bulk-list-modal {
+  max-width: 340px;
+  width: 90%;
+}
+
+.bulk-list-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bulk-list-modal__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  color: var(--text-primary, #eaeaea);
+  font-size: 13px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.bulk-list-modal__option:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.bulk-list-modal__name {
+  font-weight: 500;
+}
+
+.bulk-list-modal__count {
+  font-size: 11px;
+  color: var(--text-secondary, #a0a0a0);
+}
+
+.bulk-list-modal__empty {
+  text-align: center;
+  color: var(--text-secondary, #a0a0a0);
+  font-size: 13px;
+  padding: 16px 0;
+}
