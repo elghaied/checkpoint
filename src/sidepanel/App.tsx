@@ -19,6 +19,7 @@ import { ImportBanner } from './components/ImportBanner'
 import NavRail from './components/NavRail'
 import type { NavView } from './components/NavRail'
 import TagsView from './components/TagsView'
+import DiscoverView from './components/DiscoverView'
 import BulkActionBar from './components/BulkActionBar'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
@@ -355,6 +356,15 @@ export default function App() {
             </div>
           )}
         </>
+      )
+    }
+
+    if (view === 'discover') {
+      return (
+        <DiscoverView
+          trackedItems={items}
+          onRefresh={refresh}
+        />
       )
     }
 
