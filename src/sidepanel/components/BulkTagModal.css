@@ -1,6 +1,11 @@
 .bulk-tag-modal {
-  max-width: 340px;
+  max-width: 360px;
   width: 90%;
+  overflow: visible;
+}
+
+.bulk-tag-modal .modal__body {
+  overflow: visible;
 }
 
 .bulk-tag-modal__input-row {
@@ -32,6 +37,12 @@
 .bulk-tag-modal__color-wrap {
   position: relative;
   flex-shrink: 0;
+}
+
+/* Position color picker to the left so it doesn't overflow the modal */
+.bulk-tag-modal__color-wrap .tag-color-picker {
+  right: 0;
+  left: auto;
 }
 
 .bulk-tag-modal__color-btn {
