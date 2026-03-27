@@ -19,6 +19,7 @@ import { ImportBanner } from './components/ImportBanner'
 import NavRail from './components/NavRail'
 import type { NavView } from './components/NavRail'
 import TagsView from './components/TagsView'
+import BulkActionBar from './components/BulkActionBar'
 import { useTrackedItems } from './hooks/useTrackedItems'
 import { useAddItem } from './hooks/useAddItem'
 import { useSettings } from './hooks/useSettings'
@@ -50,6 +51,8 @@ export default function App() {
     item: TrackedItem
     timeoutId: number
   } | null>(null)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Lists state
   const { lists, refresh: refreshLists, createList, updateList, deleteList } = useCustomLists()
@@ -84,6 +87,40 @@ export default function App() {
     if (!pendingDelete) return filteredItems
     return filteredItems.filter((item) => item.providerId !== pendingDelete.item.providerId)
   }, [filteredItems, pendingDelete])
+
+  const toggleSelection = (providerId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(providerId)) next.delete(providerId)
+      else next.add(providerId)
+      return next
+    })
+  }
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Delete ${selectedIds.size} items?`)) return
+    for (const id of selectedIds) {
+      await deleteItem(id)
+    }
+    exitSelectionMode()
+    refresh()
+  }
+
+  const handleBulkToggleNotifications = async () => {
+    for (const id of selectedIds) {
+      const item = items.find((i) => i.providerId === id)
+      if (item) {
+        await updateItem(id, { notificationsEnabled: !item.notificationsEnabled })
+      }
+    }
+    exitSelectionMode()
+    refresh()
+  }
 
   const handleEdit = (item: TrackedItem) => {
     setEditingItem(item)
@@ -311,6 +348,12 @@ export default function App() {
               onChange={(sortOrder) => updateSettings({ sortOrder })}
             />
             <button
+              className="select-btn"
+              onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+            >
+              {selectionMode ? 'Cancel' : 'Select'}
+            </button>
+            <button
               className={`filter-toggle${filterPanel.isOpen ? ' filter-toggle--active' : ''}${filterPanel.activeFilterCount > 0 ? ' filter-toggle--has-filters' : ''}`}
               onClick={() => filterPanel.setIsOpen((o) => !o)}
               title="Toggle filters"
@@ -349,7 +392,23 @@ export default function App() {
             onOpen={handleOpen}
             onRefresh={refresh}
             onTogglePin={(item) => handleTogglePin(item.providerId, item.pinned)}
+            selectionMode={selectionMode}
+            selectedIds={selectedIds}
+            onSelect={toggleSelection}
           />
+          {selectionMode && (
+            <BulkActionBar
+              selectedCount={selectedIds.size}
+              totalCount={displayItems.length}
+              onSelectAll={() => setSelectedIds(new Set(displayItems.map((i) => i.providerId)))}
+              onDeselectAll={() => setSelectedIds(new Set())}
+              onDelete={handleBulkDelete}
+              onTag={() => {}}
+              onAddToList={() => {}}
+              onToggleNotifications={handleBulkToggleNotifications}
+              onCancel={exitSelectionMode}
+            />
+          )}
           {addItem.status === 'error' && (
             <div className="toast toast--error">
               {addItem.error}

@@ -12,9 +12,12 @@ interface ItemListProps {
   onOpen: (item: TrackedItem) => void
   onRefresh: () => void
   onTogglePin?: (item: TrackedItem) => void
+  selectionMode?: boolean
+  selectedIds?: Set<string>
+  onSelect?: (providerId: string) => void
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh, onTogglePin }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh, onTogglePin, selectionMode, selectedIds, onSelect }) => {
   if (error) {
     return (
       <div className="error-state">
@@ -57,6 +60,9 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onE
           onOpen={() => onOpen(item)}
           onToggleNotifications={onRefresh}
           onTogglePin={onTogglePin ? () => onTogglePin(item) : undefined}
+          selectionMode={selectionMode}
+          selected={selectedIds?.has(item.providerId)}
+          onSelect={() => onSelect?.(item.providerId)}
         />
       ))}
     </div>
