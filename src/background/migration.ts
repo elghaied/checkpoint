@@ -73,8 +73,11 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
 
+    log.info(`[${i + 1}/${items.length}] Processing: "${item.titles.main}" (${item.provider}:${item.providerId})`)
+
     // Skip items that already have a ComicK cross-reference
     if (item.comickSlug) {
+      log.info(`  → Skipping: already has ComicK slug (${item.comickSlug})`)
       skipped++
       resultItems.push(item)
       continue
@@ -85,11 +88,14 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
       const searchResults = await searchComicK(item.titles.main)
 
       if (searchResults.length === 0) {
+        log.info(`  → Skipping: no ComicK search results`)
         log.debug('No ComicK results for:', item.titles.main)
         skipped++
         resultItems.push(item)
         continue
       }
+
+      log.debug(`  Search returned ${searchResults.length} results:`, searchResults.map((r) => r.title).join(', '))
 
       // Find the best-scoring result
       let bestScore = 0
@@ -98,6 +104,7 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
       for (let j = 0; j < searchResults.length; j++) {
         const r = searchResults[j]
         const score = scoreComicKResult(item.titles.main, r.title, r.altTitles)
+        log.debug(`    Score ${score.toFixed(3)} for "${r.title}" (slug: ${r.slug})`)
         if (score > bestScore) {
           bestScore = score
           bestIndex = j
@@ -105,6 +112,7 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
       }
 
       const bestResult = searchResults[bestIndex]
+      log.debug(`  Best match: "${bestResult.title}" (slug: ${bestResult.slug}) — raw score: ${bestScore.toFixed(3)}`)
       let finalConfidence = bestScore
 
       // For AniList items: fetch detail and check if links.al matches providerId
@@ -116,18 +124,16 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
 
         if (detail && detail.links.anilistId === item.providerId) {
           finalConfidence = 1.0
-          log.debug('AniList ID match for:', item.titles.main)
+          log.info(`  AniList ID match (al:${detail.links.anilistId}) → boosting confidence to 1.0`)
+        } else if (detail) {
+          log.debug(`  AniList ID check: ComicK al=${detail.links.anilistId ?? 'null'}, item=${item.providerId} — no match`)
         }
       }
 
       // Check if confidence meets the migration threshold
       if (finalConfidence < MIGRATION_CONFIDENCE_THRESHOLD) {
-        log.debug(
-          'Low confidence for:',
-          item.titles.main,
-          '– score:',
-          finalConfidence,
-          '– skipping'
+        log.info(
+          `  → Skipping: confidence ${finalConfidence.toFixed(3)} < threshold ${MIGRATION_CONFIDENCE_THRESHOLD} for "${bestResult.title}"`
         )
         skipped++
         resultItems.push(item)
@@ -140,7 +146,7 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
       }
 
       if (!detail) {
-        log.error('Failed to fetch ComicK detail for slug:', bestResult.slug)
+        log.error(`  → Skipping: failed to fetch ComicK detail for slug: ${bestResult.slug}`)
         skipped++
         resultItems.push(item)
         continue
@@ -165,17 +171,11 @@ export async function migrateItemsToComicK(items: TrackedItem[]): Promise<Migrat
       migrated++
       resultItems.push(updatedItem)
 
-      log.debug(
-        'Migrated:',
-        item.titles.main,
-        '→',
-        detail.slug,
-        '(confidence:',
-        finalConfidence,
-        ')'
+      log.info(
+        `  → Migrated: "${item.titles.main}" → slug="${detail.slug}" hid="${detail.hid}" confidence=${finalConfidence.toFixed(3)} chapters=${detail.lastChapter ?? 'null'}`
       )
     } catch (err) {
-      log.error('Migration failed for:', item.titles.main, '–', err)
+      log.error(`  → Error: migration failed for "${item.titles.main}" —`, err)
       skipped++
       resultItems.push(item)
     }

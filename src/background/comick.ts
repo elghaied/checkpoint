@@ -183,6 +183,8 @@ export async function searchComicK(query: string): Promise<ComicKMedia[]> {
     t: 'true',
   })
 
+  log.debug('Search URL:', url)
+
   let response: Response
 
   try {
@@ -225,7 +227,7 @@ export async function searchComicK(query: string): Promise<ComicKMedia[]> {
 export async function fetchComicDetail(slug: string): Promise<ComicKDetail | null> {
   const url = buildUrl(`/comic/${slug}/`)
 
-  log.debug('Fetching detail for slug:', slug)
+  log.debug('Fetching detail for slug:', slug, '— URL:', url)
 
   try {
     const response = await fetchWithRetry(url, { headers: COMICK_HEADERS })
@@ -282,6 +284,11 @@ export async function fetchBatchComicKInfo(
           chapters: detail.lastChapter,
           genres: detail.genres,
         })
+        log.debug(`  Batch fetched: slug="${slug}" chapters=${detail.lastChapter ?? 'null'} status=${mapComickStatus(detail.status)}`)
+      } else if (result.status === 'rejected') {
+        log.error(`  Batch fetch failed for slug="${slug}":`, result.reason)
+      } else {
+        log.debug(`  Batch fetch returned null for slug="${slug}"`)
       }
     }
 

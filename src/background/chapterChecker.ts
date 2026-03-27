@@ -106,6 +106,19 @@ export async function handleChapterCheckAlarm(): Promise<void> {
   const anilistOnly = items.filter((item) => !item.comickSlug && item.provider === 'anilist')
   const mangadexOnly = items.filter((item) => !item.comickSlug && item.provider === 'mangadex')
 
+  log.info(
+    `Provider routing: ${comickItems.length} ComicK, ${anilistOnly.length} AniList-only, ${mangadexOnly.length} MangaDex-only`
+  )
+  if (comickItems.length > 0) {
+    log.debug('ComicK items:', comickItems.map((i) => `"${i.titles.main}" (slug:${i.comickSlug})`).join(', '))
+  }
+  if (anilistOnly.length > 0) {
+    log.debug('AniList-only items:', anilistOnly.map((i) => `"${i.titles.main}" (id:${i.providerId})`).join(', '))
+  }
+  if (mangadexOnly.length > 0) {
+    log.debug('MangaDex-only items:', mangadexOnly.map((i) => `"${i.titles.main}" (id:${i.providerId})`).join(', '))
+  }
+
   // Fetch from all three APIs in parallel
   const comickSlugs = comickItems.map((item) => item.comickSlug as string)
   const anilistIds = anilistOnly.map((item) => item.providerId)
