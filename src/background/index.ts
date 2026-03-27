@@ -8,7 +8,7 @@ import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } f
 import { runGenreBackfill } from './genreBackfill'
 import { runSilentMigration } from './migration'
 import type { MessageRequest, ExportedData } from '@/shared/types'
-import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE } from '@/shared/constants'
+import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE, MIGRATION_STORAGE_KEY } from '@/shared/constants'
 import { createLogger } from '@/shared/logger'
 import { RateLimiter } from './rateLimiter'
 import { setImportActive } from './state'
@@ -256,6 +256,9 @@ async function handleMessage(
       const result = await storageService.importData(message.data as ExportedData)
       // Trigger backfill for imported items that may lack genres
       runGenreBackfill().catch((err) => log.error('Genre backfill after import failed:', err))
+      // Reset ComicK migration flag so imported items get cross-referenced
+      chrome.storage.local.remove(MIGRATION_STORAGE_KEY)
+      runSilentMigration().catch((err) => log.error('ComicK migration after import failed:', err))
       return result
     }
 
