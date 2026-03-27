@@ -2,6 +2,7 @@
 import { searchAniList } from './anilist'
 import { searchMangaDex } from './mangadex'
 import { searchComicK, enrichComicKResult } from './comick'
+import { fetchTrending, computeForYou } from './discover'
 import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
@@ -143,6 +144,20 @@ async function handleMessage(
     case 'ENRICH_COMICK': {
       log.debug('ENRICH_COMICK:', message.slug)
       return enrichComicKResult(message.slug)
+    }
+
+    case 'GET_TRENDING': {
+      return fetchTrending(message.comicTypes)
+    }
+
+    case 'GET_FOR_YOU': {
+      const allItems = await storageService.getAll()
+      const trackedSlugs = new Set<string>()
+      for (const item of allItems) {
+        if (item.comickSlug) trackedSlugs.add(item.comickSlug)
+        trackedSlugs.add(item.providerId)
+      }
+      return computeForYou(allItems, trackedSlugs)
     }
 
     case 'SAVE_ITEM': {
