@@ -13,6 +13,7 @@ interface ItemCardProps {
   onEdit: () => void
   onOpen: () => void
   onToggleNotifications?: (enabled: boolean) => void
+  onTogglePin?: () => void
 }
 
 function formatUpdatedAt(timestamp: number): string {
@@ -30,7 +31,7 @@ function formatUpdatedAt(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString()
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications, onTogglePin }) => {
   const [bellLoading, setBellLoading] = useState(false)
 
   const progressLabel =
@@ -70,6 +71,15 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
       <div className="item-card__info">
         <div className="item-card__header">
           <h3 className="item-card__title">{item.titles.main}</h3>
+          <button
+            className={`item-card__pin ${item.pinned ? 'item-card__pin--active' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onTogglePin?.() }}
+            title={item.pinned ? 'Unpin' : 'Pin to top'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+            </svg>
+          </button>
           <button
             className={`item-card__bell ${item.notificationsEnabled ? 'item-card__bell--active' : ''}${bellLoading ? ' item-card__bell--loading' : ''}`}
             onClick={handleBellClick}

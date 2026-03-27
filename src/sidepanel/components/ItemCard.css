@@ -58,6 +58,26 @@
   gap: 8px;
 }
 
+.item-card__pin {
+  background: none;
+  border: none;
+  color: var(--text-muted, #808080);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  opacity: 0.4;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.item-card__pin:hover {
+  opacity: 0.8;
+}
+
+.item-card__pin--active {
+  color: var(--primary, #e94560);
+  opacity: 1;
+}
+
 .item-card__bell {
   background: none;
   border: none;
