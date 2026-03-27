@@ -41,7 +41,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
   // Calculate chapters ahead
   const userProgress = parseFloat(item.progress.value) || 0
   const latestChapters = item.latestKnownChapters ?? 0
-  const chaptersAhead = Math.max(0, latestChapters - userProgress)
+  const chaptersAhead = Math.max(0, Math.round((latestChapters - userProgress) * 10) / 10)
 
   const handleBellClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
