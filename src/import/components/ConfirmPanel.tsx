@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
 import type { ImportSession, ImportRow, MatchTier, PendingReviewList } from '@/shared/importTypes'
-import type { TrackedItem, CustomTagRegistry } from '@/shared/types'
+import type { TrackedItem, CustomTagRegistry, ComicKMedia } from '@/shared/types'
 import { buildPendingReviewList, generateDiagnosticCsv, collectNewTags } from '../confirmLogic'
 import { getNextTagColor } from '@/shared/tagColors'
-import { saveItem, updateItem, getCustomTags, saveCustomTag } from '../services/messaging'
+import { saveItem, updateItem, getCustomTags, saveCustomTag, enrichComicK } from '../services/messaging'
 
 export interface ConfirmPanelProps {
   session: ImportSession
@@ -308,6 +308,28 @@ export function ConfirmPanel({ session, onComplete, onSavePendingReview, onClear
           comickSlug: null,
           anilistId: null,
         }
+        // Enrich ComicK results with detail data
+        if (item.provider === 'comick') {
+          const comickData = match.originalData as ComicKMedia
+          const enrichment = await enrichComicK(comickData.slug)
+          if (enrichment) {
+            item.comickHid = enrichment.hid
+            item.comickSlug = enrichment.slug
+            item.anilistId = enrichment.anilistId
+            if (enrichment.genres.length > 0) {
+              item.genres = enrichment.genres
+              item.genresBackfilled = true
+            }
+            // Merge enriched alt titles
+            const existingSet = new Set(item.titles.alt.map((t) => t.toLowerCase().trim()))
+            for (const t of enrichment.altTitles) {
+              if (t && !existingSet.has(t.toLowerCase().trim())) {
+                item.titles.alt.push(t)
+              }
+            }
+          }
+        }
+
         try {
           await saveItem(item)
           added++
