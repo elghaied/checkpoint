@@ -123,7 +123,7 @@ export function useAddItem(onSuccess: () => void) {
       // Extract ComicK cross-reference fields if available
       let comickHid: string | null = null
       let comickSlug: string | null = null
-      let anilistIdRef: string | null = null
+      const anilistIdRef: string | null = null
 
       if (result.provider === 'comick') {
         const comickData = result.originalData as ComicKMedia
