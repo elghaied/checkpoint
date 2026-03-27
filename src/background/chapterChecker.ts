@@ -387,6 +387,7 @@ export async function updateBadge(): Promise<void> {
   let titlesWithUpdates = 0
 
   for (const item of allItems) {
+    if (!item.notificationsEnabled) continue
     if (item.latestKnownChapters != null && item.latestKnownChapters > 0) {
       const progress = parseFloat(item.progress.value) || 0
       if (item.latestKnownChapters - progress > 0) titlesWithUpdates++
