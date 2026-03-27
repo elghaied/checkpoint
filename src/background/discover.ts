@@ -39,10 +39,15 @@ interface ComicKTrendingItem {
 function extractCoverUrl(item: ComicKTrendingItem): string {
   if (item.cover_url) return item.cover_url
   if (item.md_covers && item.md_covers.length > 0) {
-    // b2key is like "l6w430.jpg" — insert "-s" before the extension for small thumbnail
+    // The "-s" thumbnail suffix only works for .jpg on ComicK CDN.
+    // For .png/.webp, use the original file to avoid 404s.
     const b2key = item.md_covers[0].b2key
+    const ext = b2key.slice(b2key.lastIndexOf('.')).toLowerCase()
+    const useThumb = ext === '.jpg' || ext === '.jpeg'
     const dotIndex = b2key.lastIndexOf('.')
-    const thumbKey = dotIndex > 0 ? `${b2key.slice(0, dotIndex)}-s${b2key.slice(dotIndex)}` : `${b2key}-s`
+    const thumbKey = useThumb && dotIndex > 0
+      ? `${b2key.slice(0, dotIndex)}-s${b2key.slice(dotIndex)}`
+      : b2key
     return `https://meo.comick.pictures/${thumbKey}`
   }
   return ''
