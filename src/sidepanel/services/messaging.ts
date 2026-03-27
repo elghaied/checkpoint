@@ -11,6 +11,7 @@ import type {
   CustomTagRegistry,
   CustomList,
   ComicKMedia,
+  DiscoverItem,
 } from '@/shared/types'
 import type { ComicKEnrichment } from '@/background/comick'
 
@@ -213,4 +214,16 @@ export async function updateList(
 
 export async function deleteList(listId: string): Promise<void> {
   return sendMessage<void>({ type: 'DELETE_LIST', listId })
+}
+
+// -------------------------------------------------------------------------
+// Discover
+// -------------------------------------------------------------------------
+
+export async function getTrending(comicTypes?: string[]): Promise<DiscoverItem[]> {
+  return sendMessage<DiscoverItem[]>({ type: 'GET_TRENDING', comicTypes })
+}
+
+export async function getForYou(): Promise<DiscoverItem[]> {
+  return sendMessage<DiscoverItem[]>({ type: 'GET_FOR_YOU' })
 }

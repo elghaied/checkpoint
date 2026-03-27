@@ -157,6 +157,21 @@ export interface ComicKMedia {
   genres: string[]             // resolved genre names (empty from search, filled from detail)
 }
 
+// Item from ComicK discover/trending endpoints
+export interface DiscoverItem {
+  hid: string
+  slug: string
+  title: string
+  coverUrl: string
+  country: string           // 'jp', 'kr', 'cn'
+  status: number
+  lastChapter: number | null
+  rating: string | null
+  followCount: number
+  altTitles: string[]
+  genres: number[]           // genre IDs from trending (resolved in UI)
+}
+
 // Unified search result for multi-provider search
 export interface UnifiedSearchResult {
   provider: 'comick' | 'anilist' | 'mangadex'
@@ -212,6 +227,8 @@ export type MessageRequest =
   | { type: 'SEARCH_MANGADEX'; query: string }
   | { type: 'SEARCH_COMICK'; query: string }
   | { type: 'ENRICH_COMICK'; slug: string }
+  | { type: 'GET_TRENDING'; comicTypes?: string[] }
+  | { type: 'GET_FOR_YOU' }
   | { type: 'SAVE_ITEM'; item: TrackedItem }
   | { type: 'GET_ALL_ITEMS'; format?: TrackedItem['format'] }
   | { type: 'UPDATE_PROGRESS'; providerId: string; progress: string; lastUrl: string }
