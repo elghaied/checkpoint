@@ -1,7 +1,7 @@
 // Checkpoint Background Service Worker
 import { searchAniList } from './anilist'
 import { searchMangaDex } from './mangadex'
-import { searchComicK } from './comick'
+import { searchComicK, enrichComicKResult } from './comick'
 import { searchWithFallback } from './searchService'
 import { storageService } from '@/storage'
 import { setupChapterCheckAlarm, handleChapterCheckAlarm, triggerManualCheck } from './chapterChecker'
@@ -138,6 +138,11 @@ async function handleMessage(
       const results = await searchComicK(message.query)
       log.debug('SEARCH_COMICK results:', results.length)
       return results
+    }
+
+    case 'ENRICH_COMICK': {
+      log.debug('ENRICH_COMICK:', message.slug)
+      return enrichComicKResult(message.slug)
     }
 
     case 'SAVE_ITEM': {

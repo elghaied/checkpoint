@@ -1,5 +1,6 @@
 import type { MessageRequest, MessageResponse, UnifiedSearchResult, TrackedItem, CustomTagRegistry } from '@/shared/types'
 import type { ImportSearchRateLimited } from '@/shared/importTypes'
+import type { ComicKEnrichment } from '@/background/comick'
 
 async function sendMessage<T>(message: MessageRequest): Promise<T> {
   const response = await chrome.runtime.sendMessage(message) as MessageResponse<T>
@@ -42,4 +43,8 @@ export async function getCustomTags(): Promise<CustomTagRegistry> {
 
 export async function saveCustomTag(tagName: string, color: string): Promise<void> {
   return sendMessage<void>({ type: 'UPDATE_CUSTOM_TAGS', tagName, updates: { color } })
+}
+
+export async function enrichComicK(slug: string): Promise<ComicKEnrichment | null> {
+  return sendMessage<ComicKEnrichment | null>({ type: 'ENRICH_COMICK', slug })
 }

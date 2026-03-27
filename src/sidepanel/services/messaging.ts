@@ -12,6 +12,7 @@ import type {
   CustomList,
   ComicKMedia,
 } from '@/shared/types'
+import type { ComicKEnrichment } from '@/background/comick'
 
 /**
  * Send a message to the background service worker
@@ -53,6 +54,13 @@ export async function searchManga(query: string, extractedTitle: string): Promis
  */
 export async function searchComicK(query: string): Promise<ComicKMedia[]> {
   return sendMessage<ComicKMedia[]>({ type: 'SEARCH_COMICK', query })
+}
+
+/**
+ * Enrich a ComicK result with detail data (alt titles, genres, anilistId)
+ */
+export async function enrichComicK(slug: string): Promise<ComicKEnrichment | null> {
+  return sendMessage<ComicKEnrichment | null>({ type: 'ENRICH_COMICK', slug })
 }
 
 /**

@@ -1,6 +1,6 @@
 import { storageService } from '@/storage'
 import { searchComicK, fetchComicDetail } from './comick'
-import { normalise, scorePair, bestTitleScore } from './anilist'
+import { bestTitleScore } from './anilist'
 import { createLogger } from '@/shared/logger'
 import {
   MIGRATION_CONFIDENCE_THRESHOLD,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { searchComicK, fetchComicDetail, fetchBatchComicKInfo, CloudflareBlockError } from './comick'
+import { searchComicK, fetchComicDetail, fetchBatchComicKInfo, enrichComicKResult, CloudflareBlockError } from './comick'
 
 // ---------------------------------------------------------------------------
 // Mock fetchWithRetry from ./retry
@@ -321,6 +321,46 @@ describe('fetchComicDetail', () => {
     const detail = await fetchComicDetail('empty-genres-slug')
 
     expect(detail!.genres).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// enrichComicKResult
+// ---------------------------------------------------------------------------
+
+describe('enrichComicKResult', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns enrichment data from detail endpoint', async () => {
+    mockFetchWithRetry.mockResolvedValue(makeResponse(makeDetailResponse({
+      hid: 'enrich-hid',
+      slug: 'enrich-slug',
+      links: { al: '99999', mal: '88888' },
+      md_titles: [{ title: 'Alt One' }, { title: 'Alt Two' }],
+      md_comic_md_genres: [
+        { md_genres: { name: 'Action', slug: 'action', group: 'Genre' } },
+      ],
+    })))
+
+    const result = await enrichComicKResult('enrich-slug')
+
+    expect(result).not.toBeNull()
+    expect(result!.hid).toBe('enrich-hid')
+    expect(result!.slug).toBe('enrich-slug')
+    expect(result!.anilistId).toBe('99999')
+    expect(result!.altTitles).toContain('Alt One')
+    expect(result!.altTitles).toContain('Alt Two')
+    expect(result!.genres).toContain('Action')
+  })
+
+  it('returns null on error', async () => {
+    mockFetchWithRetry.mockResolvedValue(makeResponse({ error: 'Not Found' }, 404))
+
+    const result = await enrichComicKResult('nonexistent')
+
+    expect(result).toBeNull()
   })
 })
 

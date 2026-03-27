@@ -206,6 +206,7 @@ export type MessageRequest =
   | { type: 'SEARCH_MANGA'; query: string; extractedTitle: string }
   | { type: 'SEARCH_MANGADEX'; query: string }
   | { type: 'SEARCH_COMICK'; query: string }
+  | { type: 'ENRICH_COMICK'; slug: string }
   | { type: 'SAVE_ITEM'; item: TrackedItem }
   | { type: 'GET_ALL_ITEMS'; format?: TrackedItem['format'] }
   | { type: 'UPDATE_PROGRESS'; providerId: string; progress: string; lastUrl: string }

@@ -115,6 +115,14 @@ export interface ComicKChapterResult {
   genres: string[]
 }
 
+export interface ComicKEnrichment {
+  hid: string
+  slug: string
+  anilistId: string | null
+  altTitles: string[]
+  genres: string[]
+}
+
 // ---------------------------------------------------------------------------
 // Normalisation helpers
 // ---------------------------------------------------------------------------
@@ -243,6 +251,27 @@ export async function fetchComicDetail(slug: string): Promise<ComicKDetail | nul
   } catch (err) {
     log.error('Error fetching detail for slug', slug, ':', err)
     return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// enrichComicKResult
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch enrichment data for a ComicK result.
+ * Used at save time to get richer alt titles, anilistId, and genres.
+ */
+export async function enrichComicKResult(slug: string): Promise<ComicKEnrichment | null> {
+  const detail = await fetchComicDetail(slug)
+  if (!detail) return null
+
+  return {
+    hid: detail.hid,
+    slug: detail.slug,
+    anilistId: detail.links.anilistId ?? null,
+    altTitles: detail.altTitles,
+    genres: detail.genres,
   }
 }
 
