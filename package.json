@@ -1,9 +1,9 @@
 {
   "name": "checkpoint",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Chrome extension to track manga, manhwa, and manhua reading progress",
+  "description": "Chrome side panel extension to track manga, manhwa, and manhua reading progress with auto chapter detection, new release notifications, and trending discovery",
   "scripts": {
     "dev": "vite build --watch",
     "build": "tsc --noEmit && vite build",
@@ -17,8 +17,19 @@
     "manga",
     "manhwa",
     "manhua",
-    "tracker",
-    "anilist"
+    "manga-tracker",
+    "manga-reader",
+    "reading-tracker",
+    "chapter-tracker",
+    "webtoon",
+    "comic",
+    "comick",
+    "anilist",
+    "mangadex",
+    "side-panel",
+    "notifications",
+    "trending",
+    "reading-list"
   ],
   "author": "",
   "license": "MIT",

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Checkpoint",
-  "version": "1.0.0",
-  "description": "Track your manga, manhwa, and manhua reading progress",
+  "version": "1.1.0",
+  "description": "Track manga, manhwa & manhua reading progress. Auto-detect chapters, get new release notifications, discover trending titles.",
   "permissions": [
     "storage",
     "unlimitedStorage",
