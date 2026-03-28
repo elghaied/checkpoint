@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { TrackedItem } from '@/shared/types'
+import type { TrackedItem, CustomTagRegistry } from '@/shared/types'
 import { toggleItemNotifications } from '../services/messaging'
 import { createLogger } from '@/shared/logger'
 import { GenreBadges } from './GenreBadges'
 import { TagBadges } from './TagBadges'
-import type { CustomTagRegistry } from '@/shared/types'
 import './ItemCard.css'
 
 const log = createLogger('app')
