@@ -1,4 +1,4 @@
-import type { TrackedItem } from '@/shared/types'
+import type { TrackedItem, CustomTagRegistry } from '@/shared/types'
 import ItemCard from './ItemCard'
 import EmptyState from './EmptyState'
 import './ItemList.css'
@@ -15,9 +15,10 @@ interface ItemListProps {
   selectionMode?: boolean
   selectedIds?: Set<string>
   onSelect?: (providerId: string) => void
+  tagRegistry?: CustomTagRegistry
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh, onTogglePin, selectionMode, selectedIds, onSelect }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onEdit, onOpen, onRefresh, onTogglePin, selectionMode, selectedIds, onSelect, tagRegistry }) => {
   if (error) {
     return (
       <div className="error-state">
@@ -63,6 +64,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, loading, error, onRetry, onE
           selectionMode={selectionMode}
           selected={selectedIds?.has(item.providerId)}
           onSelect={() => onSelect?.(item.providerId)}
+          tagRegistry={tagRegistry}
         />
       ))}
     </div>

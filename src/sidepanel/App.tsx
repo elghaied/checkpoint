@@ -432,6 +432,7 @@ export default function App() {
             selectionMode={selectionMode}
             selectedIds={selectedIds}
             onSelect={toggleSelection}
+            tagRegistry={tagRegistry}
           />
           {selectionMode && (
             <BulkActionBar
