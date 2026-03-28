@@ -295,6 +295,7 @@ export default function App() {
               allItems={items}
               onBack={handleListBack}
               onAddItems={handleAddItemsToList}
+              tagRegistry={tagRegistry}
               onEditFilters={() => {
                 if (selectedList?.filters) {
                   filterPanel.setFilters({

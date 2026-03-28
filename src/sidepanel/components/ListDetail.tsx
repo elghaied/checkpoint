@@ -1,4 +1,4 @@
-import type { CustomList, TrackedItem } from '@/shared/types'
+import type { CustomList, CustomTagRegistry, TrackedItem } from '@/shared/types'
 import { applyFilters } from '@/shared/filterEngine'
 import ItemCard from './ItemCard'
 import './ListDetail.css'
@@ -11,6 +11,7 @@ interface ListDetailProps {
   onEditFilters: () => void
   onRemoveItem: (providerId: string) => void
   onItemEdit: (item: TrackedItem) => void
+  tagRegistry?: CustomTagRegistry
 }
 
 function getListItems(list: CustomList, allItems: TrackedItem[]): TrackedItem[] {
@@ -36,6 +37,7 @@ const ListDetail: React.FC<ListDetailProps> = ({
   onEditFilters,
   onRemoveItem,
   onItemEdit,
+  tagRegistry,
 }) => {
   const items = getListItems(list, allItems)
 
@@ -88,6 +90,7 @@ const ListDetail: React.FC<ListDetailProps> = ({
                 index={idx}
                 onEdit={() => onItemEdit(item)}
                 onOpen={() => handleOpen(item)}
+                tagRegistry={tagRegistry}
               />
               {list.type === 'manual' && (
                 <button
