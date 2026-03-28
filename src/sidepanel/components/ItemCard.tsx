@@ -3,6 +3,8 @@ import { TrackedItem } from '@/shared/types'
 import { toggleItemNotifications } from '../services/messaging'
 import { createLogger } from '@/shared/logger'
 import { GenreBadges } from './GenreBadges'
+import { TagBadges } from './TagBadges'
+import type { CustomTagRegistry } from '@/shared/types'
 import './ItemCard.css'
 
 const log = createLogger('app')
@@ -17,6 +19,7 @@ interface ItemCardProps {
   selectionMode?: boolean
   selected?: boolean
   onSelect?: () => void
+  tagRegistry?: CustomTagRegistry
 }
 
 function formatUpdatedAt(timestamp: number): string {
@@ -34,7 +37,7 @@ function formatUpdatedAt(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString()
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications, onTogglePin, selectionMode, selected, onSelect }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onToggleNotifications, onTogglePin, selectionMode, selected, onSelect, tagRegistry }) => {
   const [bellLoading, setBellLoading] = useState(false)
 
   const progressLabel =
@@ -108,6 +111,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, index, onEdit, onOpen, onTogg
           </div>
         </div>
         <GenreBadges genres={item.genres} />
+        {tagRegistry && <TagBadges tags={item.tags} tagRegistry={tagRegistry} />}
         <div className="item-card__progress-row">
           <p className="item-card__progress">{progressLabel}</p>
           {chaptersAhead > 0 && (
