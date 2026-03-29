@@ -1,6 +1,6 @@
 {
   "name": "checkpoint",
-  "version": "1.2.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "Chrome side panel extension to track manga, manhwa, and manhua reading progress with auto chapter detection, new release notifications, and trending discovery",
