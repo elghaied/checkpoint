@@ -333,6 +333,15 @@ Load the `dist/` folder as an unpacked extension at `chrome://extensions` (Devel
 
 CI runs typecheck, lint, and tests on all PRs.
 
+## Contributors
+
+Thanks to everyone who helped shape Checkpoint beyond just code.
+
+| Contributor | Role |
+|-------------|------|
+| [@elghaied](https://github.com/elghaied) | Creator & Developer |
+| MadamBubbles | Testing, feedback & feature ideas |
+
 ## License
 
 MIT - see [LICENSE](LICENSE) for details.
