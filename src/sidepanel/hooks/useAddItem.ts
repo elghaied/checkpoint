@@ -2,6 +2,9 @@ import { useState } from 'react'
 import type { TrackedItem, ComicKMedia, PageMetadata, UnifiedSearchResult } from '@/shared/types'
 import { extractMetadata, searchManga, saveItem, findByTitle, enrichComicK } from '../services/messaging'
 import { TOAST_DURATION_MS } from '@/shared/constants'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('app')
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -91,6 +94,7 @@ export function useAddItem(onSuccess: () => void) {
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: results }))
       }
     } catch (err) {
+      log.error('add-item start failed', { err: String(err) })
       setState((prev) => ({
         ...prev,
         status: 'error',
@@ -189,6 +193,7 @@ export function useAddItem(onSuccess: () => void) {
         setState({ status: 'idle', metadata: null, searchResults: null, error: null, originalExtractedTitle: null })
       }, TOAST_DURATION_MS)
     } catch (err) {
+      log.error('add-item failed', { providerId: result.id, err: String(err) })
       setState((prev) => ({
         ...prev,
         status: 'error',
@@ -206,6 +211,7 @@ export function useAddItem(onSuccess: () => void) {
       const results = await searchManga(query, query)
       setState((prev) => ({ ...prev, status: 'selecting', searchResults: results }))
     } catch (err) {
+      log.error('add-item search failed', { err: String(err) })
       setState((prev) => ({
         ...prev,
         status: 'error',
