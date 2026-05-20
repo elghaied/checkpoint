@@ -10,12 +10,36 @@ import { runGenreBackfill } from './genreBackfill'
 import { runSilentMigration, runPostImportEnrichment } from './migration'
 import type { MessageRequest, ExportedData } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE, MIGRATION_STORAGE_KEY } from '@/shared/constants'
-import { createLogger } from '@/shared/logger'
+import { createLogger, setBufferSink } from '@/shared/logger'
+import { appendEntry, hydrate, setVerbose, clearBuffer } from '@/shared/diagnosticBuffer'
 import { RateLimiter } from './rateLimiter'
 import { setImportActive } from './state'
 import { getNextTagColor } from '@/shared/tagColors'
 
 const log = createLogger('background')
+
+// Install diagnostic buffer sink for the service worker.
+setBufferSink((entry) => appendEntry({ ...entry, ctx: 'sw' }))
+void hydrate()
+
+// Apply initial verbose-logging setting and listen for changes.
+chrome.storage.local.get('settings', (result) => {
+  const s = result.settings as { verboseLogging?: boolean } | undefined
+  setVerbose(Boolean(s?.verboseLogging))
+})
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.settings) return
+  const next = changes.settings.newValue as { verboseLogging?: boolean } | undefined
+  setVerbose(Boolean(next?.verboseLogging))
+})
+
+// Capture uncaught errors and unhandled promise rejections into the buffer.
+self.addEventListener('error', (e: ErrorEvent) => {
+  log.error('uncaught', { message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno })
+})
+self.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
+  log.error('unhandled-rejection', { reason: String(e.reason) })
+})
 
 /**
  * Sync orphan tags: items may have tags in their tags[] arrays that aren't
@@ -78,6 +102,18 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   log.debug('Received message:', message.type)
+
+  if (message.type === 'BUFFER_LOG') {
+    const ctx = sender.tab ? 'content' : 'panel'
+    appendEntry({ ...message.entry, ctx })
+    sendResponse({ data: undefined })
+    return true
+  }
+
+  if (message.type === 'CLEAR_DIAGNOSTIC_LOG') {
+    void clearBuffer().then(() => sendResponse({ data: undefined }))
+    return true
+  }
 
   // Handle messages asynchronously
   handleMessage(message as MessageRequest, sender)
