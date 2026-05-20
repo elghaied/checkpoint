@@ -75,8 +75,12 @@ export function DiagnosticPreviewModal({ report, onClose, onCleared }: Props) {
       setConfirmingClear(true)
       return
     }
-    await clearDiagnosticLog()
-    onCleared()
+    try {
+      await clearDiagnosticLog()
+      onCleared()
+    } catch {
+      setConfirmingClear(false) // reset so user can retry
+    }
   }
 
   return (

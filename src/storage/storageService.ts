@@ -1,4 +1,4 @@
-import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress } from '@/shared/types'
+import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress, LastSaveAttempt } from '@/shared/types'
 import { DEFAULT_SETTINGS } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
 
@@ -11,12 +11,7 @@ const CUSTOM_LISTS_KEY = 'customLists'
 const BACKFILL_PROGRESS_KEY = 'backfillProgress'
 const LAST_SAVE_ATTEMPT_KEY = 'lastSaveAttempt'
 
-function writeLastSaveAttempt(attempt: {
-  providerId: string
-  provider: string
-  ok: boolean
-  ts: number
-}): Promise<void> {
+function writeLastSaveAttempt(attempt: LastSaveAttempt): Promise<void> {
   return new Promise((resolve) => {
     chrome.storage.local.set({ [LAST_SAVE_ATTEMPT_KEY]: attempt }, () => resolve())
   })
@@ -186,6 +181,7 @@ export class StorageService {
       await writeLastSaveAttempt({
         providerId: item.providerId,
         provider: item.provider,
+        mode,
         ok,
         ts: Date.now(),
       })

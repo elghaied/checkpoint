@@ -128,6 +128,7 @@ export interface DiagnosticEntry {
 export interface LastSaveAttempt {
   providerId: string
   provider: string
+  mode: 'create' | 'update' | 'noop'
   ok: boolean
   ts: number
 }

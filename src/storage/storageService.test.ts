@@ -148,7 +148,7 @@ describe('StorageService', () => {
       const lsa = await new Promise<unknown>((resolve) =>
         chrome.storage.local.get('lastSaveAttempt', (r) => resolve(r.lastSaveAttempt))
       )
-      expect(lsa).toMatchObject({ providerId: 'p1', provider: item.provider, ok: true })
+      expect(lsa).toMatchObject({ providerId: 'p1', provider: item.provider, ok: true, mode: 'create' })
       expect((lsa as { ts: number }).ts).toBeGreaterThan(0)
     })
   })
