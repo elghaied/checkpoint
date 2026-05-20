@@ -11,7 +11,8 @@ import { runSilentMigration, runPostImportEnrichment } from './migration'
 import type { MessageRequest, ExportedData } from '@/shared/types'
 import { CHAPTER_CHECK_ALARM_NAME, CONTENT_SCRIPT_MAX_RETRIES, CONTENT_SCRIPT_RETRY_DELAY_MS, IMPORT_RATE_LIMIT_PER_MINUTE, MIGRATION_STORAGE_KEY } from '@/shared/constants'
 import { createLogger, setBufferSink } from '@/shared/logger'
-import { appendEntry, hydrate, setVerbose, clearBuffer } from '@/shared/diagnosticBuffer'
+import { appendEntry, hydrate, setVerbose, clearBuffer, flushNow } from '@/shared/diagnosticBuffer'
+import { buildDiagnosticReport } from './diagnosticExport'
 import { RateLimiter } from './rateLimiter'
 import { setImportActive } from './state'
 import { getNextTagColor } from '@/shared/tagColors'
@@ -112,6 +113,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'CLEAR_DIAGNOSTIC_LOG') {
     void clearBuffer().then(() => sendResponse({ data: undefined }))
+    return true
+  }
+
+  if (message.type === 'EXPORT_DIAGNOSTIC') {
+    void flushNow().then(() => buildDiagnosticReport()).then((report) => {
+      sendResponse({ data: report })
+    }).catch((err) => {
+      sendResponse({ error: String(err) })
+    })
     return true
   }
 
