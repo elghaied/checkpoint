@@ -53,6 +53,7 @@ export interface ExtensionSettings {
   checkIntervalMinutes: number           // Default: 60
   exportVersion: number                  // Schema version for import/export
   sortOrder: 'updatedAt' | 'alphabetical' | 'chaptersAhead' | 'createdAt'
+  verboseLogging: boolean                // When true, debug-level entries reach the diagnostic buffer
 }
 
 // Default settings
@@ -62,6 +63,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   checkIntervalMinutes: 60,
   exportVersion: 1,
   sortOrder: 'updatedAt',
+  verboseLogging: false,
 }
 
 // Export/Import format
@@ -109,6 +111,45 @@ export interface ImportResult {
     updatedTitles: string[]
     skippedTitles: string[]
   }
+}
+
+// Diagnostic logging
+export type DiagnosticLevel = 'debug' | 'info' | 'warn' | 'error'
+
+export interface DiagnosticEntry {
+  ts: number                       // Date.now() at log site
+  level: DiagnosticLevel
+  tag: string                      // logger tag, e.g. 'search', 'storage', 'app'
+  ctx: 'sw' | 'panel' | 'content'  // execution context, set at sink
+  msg: string                      // joined string form of args (pre-stringified)
+  data?: unknown                   // structured payload when first non-string arg is an object
+}
+
+export interface LastSaveAttempt {
+  providerId: string
+  provider: string
+  ok: boolean
+  ts: number
+}
+
+export interface DiagnosticReport {
+  schemaVersion: 1
+  generatedAt: number
+  extensionVersion: string
+  browser: {
+    ua: string
+    locale: string
+  }
+  settings: ExtensionSettings
+  storageSummary: {
+    itemCount: number
+    formatCounts: Record<'MANGA' | 'MANHWA' | 'MANHUA', number>
+    customListsCount: number
+    customTagsCount: number
+    storageBytesInUse: number
+    lastSaveAttempt?: LastSaveAttempt
+  }
+  log: DiagnosticEntry[]
 }
 
 // AniList media response
@@ -245,6 +286,10 @@ export type MessageRequest =
   // Export/Import
   | { type: 'EXPORT_DATA' }
   | { type: 'IMPORT_DATA'; data: ExportedData }
+  // Diagnostic
+  | { type: 'BUFFER_LOG'; entry: Omit<DiagnosticEntry, 'ctx'> }
+  | { type: 'EXPORT_DIAGNOSTIC' }
+  | { type: 'CLEAR_DIAGNOSTIC_LOG' }
   // Tags
   | { type: 'GET_CUSTOM_TAGS' }
   | { type: 'UPDATE_CUSTOM_TAGS'; tagName: string; updates: { color?: string; newName?: string } }
