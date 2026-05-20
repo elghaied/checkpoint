@@ -33,6 +33,10 @@ const chromeStub = {
         }
         callback?.()
       }),
+      getBytesInUse: vi.fn((_keys: string | string[] | null, callback: (bytes: number) => void) => {
+        const bytes = JSON.stringify(store).length
+        callback(bytes)
+      }),
     },
     onChanged: {
       addListener: vi.fn(),
@@ -45,6 +49,7 @@ const chromeStub = {
       addListener: vi.fn(),
       removeListener: vi.fn(),
     },
+    getManifest: vi.fn(() => ({ version: '0.0.0-test' })),
   },
   alarms: {
     create: vi.fn(),
