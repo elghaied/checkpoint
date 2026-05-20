@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DiagnosticReport } from '@/shared/types'
 import { clearDiagnosticLog } from '../services/messaging'
 import './DiagnosticPreviewModal.css'
@@ -11,6 +11,7 @@ interface Props {
 
 export function DiagnosticPreviewModal({ report, onClose, onCleared }: Props) {
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
   const [confirmingClear, setConfirmingClear] = useState(false)
 
   const json = useMemo(() => JSON.stringify(report, null, 2), [report])
@@ -50,10 +51,24 @@ export function DiagnosticPreviewModal({ report, onClose, onCleared }: Props) {
   }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(json)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(json)
+      setCopied(true)
+      setCopyFailed(false)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopyFailed(true)
+      setTimeout(() => setCopyFailed(false), 2000)
+    }
   }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   const handleClear = async () => {
     if (!confirmingClear) {
@@ -66,9 +81,15 @@ export function DiagnosticPreviewModal({ report, onClose, onCleared }: Props) {
 
   return (
     <div className="diag-modal__overlay" onClick={onClose}>
-      <div className="diag-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="diag-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="diag-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="diag-modal__header">
-          <strong>Diagnostic report preview</strong>
+          <strong id="diag-modal-title">Diagnostic report preview</strong>
           <button className="diag-modal__btn" onClick={onClose}>Close</button>
         </div>
         <div className="diag-modal__summary">
@@ -87,7 +108,7 @@ export function DiagnosticPreviewModal({ report, onClose, onCleared }: Props) {
           </button>
           <div style={{ flex: 1 }} />
           <button className="diag-modal__btn" onClick={handleCopy}>
-            {copied ? 'Copied' : 'Copy to clipboard'}
+            {copyFailed ? 'Copy failed' : copied ? 'Copied' : 'Copy to clipboard'}
           </button>
           <button className="diag-modal__btn--primary diag-modal__btn" onClick={handleDownload}>
             Download .json
