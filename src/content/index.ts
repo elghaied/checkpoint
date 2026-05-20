@@ -1,7 +1,13 @@
 // Checkpoint Content Script
 import { cleanTitle, extractChapter, extractFromOgTitle, extractFromH1 } from './metadata'
 import type { PageMetadata } from '@/shared/types'
-import { createLogger } from '@/shared/logger'
+import { createLogger, setBufferSink } from '@/shared/logger'
+
+setBufferSink((entry) => {
+  void chrome.runtime.sendMessage({ type: 'BUFFER_LOG', entry }).catch(() => {
+    // Silent
+  })
+})
 
 const log = createLogger('content')
 

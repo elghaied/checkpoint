@@ -12,6 +12,7 @@ import type {
   CustomList,
   ComicKMedia,
   DiscoverItem,
+  DiagnosticReport,
 } from '@/shared/types'
 import type { ComicKEnrichment } from '@/background/comick'
 
@@ -226,4 +227,16 @@ export async function getTrending(comicTypes?: string[]): Promise<DiscoverItem[]
 
 export async function getForYou(): Promise<DiscoverItem[]> {
   return sendMessage<DiscoverItem[]>({ type: 'GET_FOR_YOU' })
+}
+
+// -------------------------------------------------------------------------
+// Diagnostics
+// -------------------------------------------------------------------------
+
+export async function exportDiagnostic(): Promise<DiagnosticReport> {
+  return sendMessage<DiagnosticReport>({ type: 'EXPORT_DIAGNOSTIC' })
+}
+
+export async function clearDiagnosticLog(): Promise<void> {
+  return sendMessage<void>({ type: 'CLEAR_DIAGNOSTIC_LOG' })
 }

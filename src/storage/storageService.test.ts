@@ -139,6 +139,20 @@ describe('StorageService', () => {
     })
   })
 
+  describe('save read-back instrumentation', () => {
+    it('writes a lastSaveAttempt with ok=true when save succeeds', async () => {
+      const service = new StorageService()
+      const item = makeItem({ providerId: 'p1' })
+      await service.save(item)
+
+      const lsa = await new Promise<unknown>((resolve) =>
+        chrome.storage.local.get('lastSaveAttempt', (r) => resolve(r.lastSaveAttempt))
+      )
+      expect(lsa).toMatchObject({ providerId: 'p1', provider: item.provider, ok: true, mode: 'create' })
+      expect((lsa as { ts: number }).ts).toBeGreaterThan(0)
+    })
+  })
+
   // -------------------------------------------------------------------------
   // update
   // -------------------------------------------------------------------------

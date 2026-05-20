@@ -1,11 +1,21 @@
-import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress } from '@/shared/types'
+import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress, LastSaveAttempt } from '@/shared/types'
 import { DEFAULT_SETTINGS } from '@/shared/types'
+import { createLogger } from '@/shared/logger'
+
+const log = createLogger('storage')
 
 const STORAGE_KEY = 'trackedItems'
 const SETTINGS_KEY = 'settings'
 const CUSTOM_TAGS_KEY = 'customTags'
 const CUSTOM_LISTS_KEY = 'customLists'
 const BACKFILL_PROGRESS_KEY = 'backfillProgress'
+const LAST_SAVE_ATTEMPT_KEY = 'lastSaveAttempt'
+
+function writeLastSaveAttempt(attempt: LastSaveAttempt): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [LAST_SAVE_ATTEMPT_KEY]: attempt }, () => resolve())
+  })
+}
 
 /**
  * Simple serialization queue to prevent concurrent read-modify-write races.
@@ -133,9 +143,14 @@ export class StorageService {
       const items = await readAll()
 
       const existingIndex = items.findIndex((existing) => existing.providerId === item.providerId)
+      const mode: 'update' | 'create' | 'noop' =
+        existingIndex !== -1
+          ? (parseFloat(item.progress.value) || 0) > (parseFloat(items[existingIndex].progress.value) || 0)
+            ? 'update'
+            : 'noop'
+          : 'create'
 
       if (existingIndex !== -1) {
-        // Update progress if new > old
         const existing = items[existingIndex]
         const oldProgress = parseFloat(existing.progress.value) || 0
         const newProgress = parseFloat(item.progress.value) || 0
@@ -155,6 +170,21 @@ export class StorageService {
         items.push(item)
         await writeAll(items)
       }
+
+      // Read-back assertion: confirm the item is present after the write.
+      const after = await readAll()
+      const ok = after.some((i) => i.providerId === item.providerId)
+      log.info('save', { providerId: item.providerId, mode, total: after.length, ok })
+      if (!ok) {
+        log.error('save read-back failed', { providerId: item.providerId, mode })
+      }
+      await writeLastSaveAttempt({
+        providerId: item.providerId,
+        provider: item.provider,
+        mode,
+        ok,
+        ts: Date.now(),
+      })
     })
   }
 
