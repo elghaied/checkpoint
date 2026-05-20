@@ -24,6 +24,11 @@ function friendlyError(err: unknown): string {
   return msg
 }
 
+function logErr(err: unknown): unknown {
+  if (err instanceof Error) return { message: err.message, stack: err.stack }
+  return err
+}
+
 interface AddItemState {
   status: 'idle' | 'extracting' | 'searching' | 'selecting' | 'saving' | 'success' | 'error'
   metadata: PageMetadata | null
@@ -94,7 +99,7 @@ export function useAddItem(onSuccess: () => void) {
         setState((prev) => ({ ...prev, status: 'selecting', searchResults: results }))
       }
     } catch (err) {
-      log.error('add-item start failed', { err: String(err) })
+      log.error('add-item start failed', { err: logErr(err) })
       setState((prev) => ({
         ...prev,
         status: 'error',
@@ -193,7 +198,7 @@ export function useAddItem(onSuccess: () => void) {
         setState({ status: 'idle', metadata: null, searchResults: null, error: null, originalExtractedTitle: null })
       }, TOAST_DURATION_MS)
     } catch (err) {
-      log.error('add-item failed', { providerId: result.id, err: String(err) })
+      log.error('add-item failed', { providerId: result.id, err: logErr(err) })
       setState((prev) => ({
         ...prev,
         status: 'error',
@@ -211,7 +216,7 @@ export function useAddItem(onSuccess: () => void) {
       const results = await searchManga(query, query)
       setState((prev) => ({ ...prev, status: 'selecting', searchResults: results }))
     } catch (err) {
-      log.error('add-item search failed', { err: String(err) })
+      log.error('add-item search failed', { err: logErr(err) })
       setState((prev) => ({
         ...prev,
         status: 'error',
