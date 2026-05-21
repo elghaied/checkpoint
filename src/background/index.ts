@@ -301,24 +301,46 @@ async function handleMessage(
     case 'FIND_BY_TITLE': {
       const items = await storageService.getAll()
       const normalizedQuery = message.title.toLowerCase().trim()
+      const MIN_TITLE_LEN_FOR_CONTAINMENT = 8
 
       // First try exact match (normalized)
-      const exactMatch = items.find((item) => {
+      for (const item of items) {
         const allTitles = [item.titles.main, ...item.titles.alt]
-        return allTitles.some((t) => t.toLowerCase().trim() === normalizedQuery)
-      })
-      if (exactMatch) return exactMatch
-
-      // Then try containment match (either direction) for longer queries
-      if (normalizedQuery.length >= 3) {
-        const containMatch = items.find((item) => {
-          const allTitles = [item.titles.main, ...item.titles.alt]
-          return allTitles.some((t) => {
-            const normTitle = t.toLowerCase().trim()
-            return normTitle.includes(normalizedQuery) || normalizedQuery.includes(normTitle)
+        const hit = allTitles.find((t) => t.toLowerCase().trim() === normalizedQuery)
+        if (hit) {
+          log.info('findByTitle matched (exact)', {
+            query: message.title,
+            providerId: item.providerId,
+            matchedOn: hit,
+            mainTitle: item.titles.main,
           })
-        })
-        if (containMatch) return containMatch
+          return item
+        }
+      }
+
+      // Containment match — both sides must be long enough to be meaningful.
+      // Without the length floor on the stored title, a stray alt like "manga"
+      // or "yaoi" would falsely match almost any query.
+      if (normalizedQuery.length >= MIN_TITLE_LEN_FOR_CONTAINMENT) {
+        for (const item of items) {
+          const allTitles = [item.titles.main, ...item.titles.alt]
+          for (const t of allTitles) {
+            const normTitle = t.toLowerCase().trim()
+            if (normTitle.length < MIN_TITLE_LEN_FOR_CONTAINMENT) continue
+            const titleInQuery = normalizedQuery.includes(normTitle)
+            const queryInTitle = normTitle.includes(normalizedQuery)
+            if (titleInQuery || queryInTitle) {
+              log.info('findByTitle matched (containment)', {
+                query: message.title,
+                providerId: item.providerId,
+                matchedOn: t,
+                mainTitle: item.titles.main,
+                direction: queryInTitle ? 'query-in-title' : 'title-in-query',
+              })
+              return item
+            }
+          }
+        }
       }
 
       return null

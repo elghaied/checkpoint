@@ -64,6 +64,15 @@ export function useAddItem(onSuccess: () => void) {
         const currentProgress = parseFloat(existingItem.progress.value) || 0
         const newProgress = parseFloat(metadata.chapterNumber || '0') || 0
 
+        log.info('add-item: treated as existing', {
+          query,
+          matchedProviderId: existingItem.providerId,
+          matchedMainTitle: existingItem.titles.main,
+          currentProgress,
+          newProgress,
+          willUpdate: newProgress > currentProgress,
+        })
+
         if (newProgress > currentProgress) {
           // Save will handle the upsert
           await saveItem({
