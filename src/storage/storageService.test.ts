@@ -616,6 +616,49 @@ describe('StorageService', () => {
     })
   })
 
+  describe('deleteList cascade', () => {
+    it('deletes a leaf list with no descendants', async () => {
+      const a = await service.createList({ name: 'a', type: 'manual', itemIds: [], filters: null, parentId: null })
+
+      await service.deleteList(a.id)
+
+      expect(await service.getLists()).toHaveLength(0)
+    })
+
+    it('cascade-deletes all descendants of a parent', async () => {
+      const root = await service.createList({ name: 'root', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const child1 = await service.createList({ name: 'c1', type: 'manual', itemIds: [], filters: null, parentId: root.id })
+      const child2 = await service.createList({ name: 'c2', type: 'manual', itemIds: [], filters: null, parentId: root.id })
+      const grand = await service.createList({ name: 'g', type: 'manual', itemIds: [], filters: null, parentId: child1.id })
+      const unrelated = await service.createList({ name: 'unrelated', type: 'manual', itemIds: [], filters: null, parentId: null })
+
+      await service.deleteList(root.id)
+
+      const remaining = await service.getLists()
+      const ids = remaining.map((l) => l.id)
+      expect(ids).toEqual([unrelated.id])
+      // Sanity: targeted ids gone.
+      expect(ids).not.toContain(root.id)
+      expect(ids).not.toContain(child1.id)
+      expect(ids).not.toContain(child2.id)
+      expect(ids).not.toContain(grand.id)
+    })
+
+    it('does not touch tracked items when cascade-deleting lists', async () => {
+      const item = makeItem({ providerId: 'item-99' })
+      await service.save(item)
+      const root = await service.createList({
+        name: 'root', type: 'manual', itemIds: ['item-99'], filters: null, parentId: null,
+      })
+      await service.createList({ name: 'c', type: 'manual', itemIds: ['item-99'], filters: null, parentId: root.id })
+
+      await service.deleteList(root.id)
+
+      const items = await service.getAll()
+      expect(items.find((i) => i.providerId === 'item-99')).toBeDefined()
+    })
+  })
+
   describe('list parentId backwards-compat', () => {
     it('defaults parentId to null when stored list has no parentId field', async () => {
       // Simulate a list written by a previous version (no parentId)

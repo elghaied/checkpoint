@@ -524,12 +524,14 @@ export class StorageService {
   }
 
   /**
-   * Delete a list by id.
+   * Delete a list by id, cascading to all descendants (children, grandchildren, ...).
+   * Tracked items are NOT touched — lists only reference items, they don't own them.
    */
   async deleteList(listId: string): Promise<void> {
     return serialize(async () => {
       const lists = await readLists()
-      await writeLists(lists.filter((l) => l.id !== listId))
+      const toDelete = new Set<string>([listId, ...descendantIds(listId, lists)])
+      await writeLists(lists.filter((l) => !toDelete.has(l.id)))
     })
   }
 
