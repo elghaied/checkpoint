@@ -123,6 +123,39 @@ export function ancestorIds(listId: string, lists: CustomList[]): string[] {
   return out
 }
 
+export interface FlatSearchResult {
+  list: CustomList
+  /** Ancestor names from root → parent joined with " / "; empty string for root-level lists. */
+  path: string
+}
+
+/**
+ * Flat, global list-name search for the folder browser. Case-insensitive substring
+ * match on every list's name, anywhere in the tree. Each result carries the path of
+ * its ancestors so the UI can show where the match lives. Results sorted by name.
+ * Empty/whitespace query returns [].
+ */
+export function searchListsFlat(lists: CustomList[], query: string): FlatSearchResult[] {
+  const trimmed = query.trim().toLowerCase()
+  if (trimmed === '') return []
+
+  const byId = new Map(lists.map((l) => [l.id, l]))
+  const results = lists
+    .filter((l) => l.name.toLowerCase().includes(trimmed))
+    .map((list) => {
+      const path = ancestorIds(list.id, lists)
+        .slice()
+        .reverse()
+        .map((id) => byId.get(id)?.name ?? '')
+        .filter(Boolean)
+        .join(' / ')
+      return { list, path }
+    })
+
+  results.sort((a, b) => a.list.name.localeCompare(b.list.name))
+  return results
+}
+
 export interface SearchFilterResult {
   /** Ids of lists that should remain visible in the tree. */
   visibleIds: Set<string>

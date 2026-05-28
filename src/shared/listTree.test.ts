@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildListTree, depthOf, descendantIds, ancestorIds, filterListTreeBySearch, subtreeMaxDepthBelow } from './listTree'
+import { buildListTree, depthOf, descendantIds, ancestorIds, filterListTreeBySearch, subtreeMaxDepthBelow, searchListsFlat } from './listTree'
 import type { CustomList } from './types'
 
 function makeList(id: string, parentId: string | null, name = id, createdAt = 0): CustomList {
@@ -192,5 +192,45 @@ describe('subtreeMaxDepthBelow', () => {
       makeList('a1a', 'a1'),
     ]
     expect(subtreeMaxDepthBelow('root', lists)).toBe(3)
+  })
+})
+
+describe('searchListsFlat', () => {
+  const lists = [
+    makeList('reading', null, 'Reading', 100),
+    makeList('manhwa', 'reading', 'Manhwa', 200),
+    makeList('cyberpunk', 'manhwa', 'Cyberpunk', 300),
+    makeList('completed', null, 'Completed', 400),
+  ]
+
+  it('returns empty array for an empty or whitespace query', () => {
+    expect(searchListsFlat(lists, '')).toEqual([])
+    expect(searchListsFlat(lists, '   ')).toEqual([])
+  })
+
+  it('matches names case-insensitively', () => {
+    const r = searchListsFlat(lists, 'CYBER')
+    expect(r).toHaveLength(1)
+    expect(r[0].list.id).toBe('cyberpunk')
+  })
+
+  it('builds the path from root to parent for a nested match', () => {
+    const r = searchListsFlat(lists, 'cyberpunk')
+    expect(r[0].path).toBe('Reading / Manhwa')
+  })
+
+  it('returns an empty path for a root-level match', () => {
+    const r = searchListsFlat(lists, 'completed')
+    expect(r[0].path).toBe('')
+  })
+
+  it('sorts results alphabetically by name', () => {
+    // 'e' matches Reading, Completed, Cyberpunk (not Manhwa)
+    const r = searchListsFlat(lists, 'e')
+    expect(r.map((x) => x.list.name)).toEqual(['Completed', 'Cyberpunk', 'Reading'])
+  })
+
+  it('returns empty array when nothing matches', () => {
+    expect(searchListsFlat(lists, 'zzz')).toEqual([])
   })
 })
