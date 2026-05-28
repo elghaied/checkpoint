@@ -9,8 +9,8 @@
 }
 
 .move-list-modal {
-  background: var(--bg-elevated, #1f1f1f);
-  color: var(--text-primary, #eee);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   border-radius: 8px;
   min-width: 280px;
   max-width: 90vw;
@@ -25,14 +25,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-bottom: 1px solid var(--surface-border);
 }
 .move-list-modal__header h3 { margin: 0; font-size: 14px; }
 
 .move-list-modal__close {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary);
   font-size: 18px;
   cursor: pointer;
   padding: 4px 8px;
@@ -56,20 +56,20 @@
   text-align: left;
   background: transparent;
   border: none;
-  color: var(--text-primary, #eee);
+  color: var(--text-primary);
   padding: 6px 10px;
   cursor: pointer;
   font-size: 13px;
 }
 .move-list-modal__row:hover:not(:disabled) {
-  background: var(--row-hover, rgba(255,255,255,0.05));
+  background: var(--surface-hover);
 }
 .move-list-modal__row--selected {
-  background: var(--accent-bg, rgba(80, 140, 255, 0.2));
+  background: var(--accent-glow);
 }
 .move-list-modal__row--disabled,
 .move-list-modal__row:disabled {
-  color: var(--text-disabled, #555);
+  color: var(--text-secondary);
   cursor: not-allowed;
 }
 
@@ -78,5 +78,5 @@
   justify-content: flex-end;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-top: 1px solid var(--surface-border);
 }
