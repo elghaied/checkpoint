@@ -1,6 +1,8 @@
 import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress, LastSaveAttempt } from '@/shared/types'
 import { DEFAULT_SETTINGS } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
+import { depthOf } from '@/shared/listTree'
+import { MAX_LIST_NESTING_DEPTH } from '@/shared/constants'
 
 const log = createLogger('storage')
 
@@ -428,10 +430,28 @@ export class StorageService {
 
   /**
    * Create a new list with a generated id and timestamps.
+   * Validates parentId references: parent must exist, must be manual, and the
+   * resulting depth must not exceed MAX_LIST_NESTING_DEPTH.
    */
   async createList(input: Omit<CustomList, 'id' | 'createdAt' | 'updatedAt'>): Promise<CustomList> {
     return serialize(async () => {
       const lists = await readLists()
+
+      if (input.parentId != null) {
+        const parent = lists.find((l) => l.id === input.parentId)
+        if (!parent) {
+          throw new Error('Parent list not found')
+        }
+        if (parent.type !== 'manual') {
+          throw new Error('Smart lists cannot contain sub-lists')
+        }
+        if (depthOf(parent.id, lists) + 1 > MAX_LIST_NESTING_DEPTH - 1) {
+          // depthOf is 0-indexed (root=0). Child depth = parent depth + 1.
+          // Reject if the new child would sit at depth > MAX-1 (i.e. > 2, meaning depth 3+).
+          throw new Error(`Maximum nesting depth (${MAX_LIST_NESTING_DEPTH}) exceeded`)
+        }
+      }
+
       const now = Date.now()
       const newList: CustomList = {
         ...input,

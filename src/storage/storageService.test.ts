@@ -469,6 +469,68 @@ describe('StorageService', () => {
     })
   })
 
+  describe('createList parentId validation', () => {
+    it('creates a list at root when parentId is null', async () => {
+      const list = await service.createList({
+        name: 'Root',
+        type: 'manual',
+        itemIds: [],
+        filters: null,
+        parentId: null,
+      })
+
+      expect(list.parentId).toBeNull()
+    })
+
+    it('creates a child under a manual parent', async () => {
+      const parent = await service.createList({
+        name: 'Parent', type: 'manual', itemIds: [], filters: null, parentId: null,
+      })
+
+      const child = await service.createList({
+        name: 'Child', type: 'manual', itemIds: [], filters: null, parentId: parent.id,
+      })
+
+      expect(child.parentId).toBe(parent.id)
+    })
+
+    it('rejects creation when parent does not exist', async () => {
+      await expect(
+        service.createList({
+          name: 'X', type: 'manual', itemIds: [], filters: null, parentId: 'no-such-id',
+        }),
+      ).rejects.toThrow(/Parent list not found/)
+    })
+
+    it('rejects creation when parent is a smart list', async () => {
+      const smart = await service.createList({
+        name: 'Smart',
+        type: 'smart',
+        itemIds: [],
+        filters: { formats: [], genres: [], tags: [] },
+        parentId: null,
+      })
+
+      await expect(
+        service.createList({
+          name: 'X', type: 'manual', itemIds: [], filters: null, parentId: smart.id,
+        }),
+      ).rejects.toThrow(/Smart lists cannot contain sub-lists/)
+    })
+
+    it('rejects creation that would exceed depth 3', async () => {
+      const a = await service.createList({ name: 'a', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const b = await service.createList({ name: 'b', type: 'manual', itemIds: [], filters: null, parentId: a.id })
+      const c = await service.createList({ name: 'c', type: 'manual', itemIds: [], filters: null, parentId: b.id })
+
+      await expect(
+        service.createList({
+          name: 'd', type: 'manual', itemIds: [], filters: null, parentId: c.id,
+        }),
+      ).rejects.toThrow(/Maximum nesting depth/)
+    })
+  })
+
   describe('list parentId backwards-compat', () => {
     it('defaults parentId to null when stored list has no parentId field', async () => {
       // Simulate a list written by a previous version (no parentId)

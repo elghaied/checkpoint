@@ -36,6 +36,7 @@ export const BACKFILL_BATCH_DELAY_MS = 1100
 
 // Default lists
 export const DEFAULT_LIST_NAMES = ['Reading', 'Completed', 'Plan to Read']
+export const MAX_LIST_NESTING_DEPTH = 3
 
 // Storage keys
 export const CUSTOM_TAGS_KEY = 'customTags'
