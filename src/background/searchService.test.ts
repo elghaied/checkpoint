@@ -4,6 +4,7 @@ import { searchAniList } from './anilist'
 import { searchMangaDex } from './mangadex'
 import { searchComicK, CloudflareBlockError } from './comick'
 import type { AniListMedia, MangaDexMedia, ComicKMedia } from '@/shared/types'
+import { CONFIDENCE_THRESHOLD } from '@/shared/constants'
 
 // ---------------------------------------------------------------------------
 // Module mocks — keep real scoring functions, mock only the API callers
@@ -194,10 +195,12 @@ describe('searchWithFallback', () => {
   // -------------------------------------------------------------------------
 
   describe('AniList results with position boost', () => {
-    it('returns top AniList results even when titles do not token-match (position boost)', async () => {
-      // AniList uses SEARCH_MATCH ranking — top results are trusted.
-      // Position boost: #1→0.85, #2→0.75, #3→0.65, #4+→token score only.
-      // Even unrelated titles pass threshold at positions 1-3 because we trust AniList's ranking.
+    it('does NOT boost AniList results when token overlap is below the minimum floor', async () => {
+      // Position boost is suppressed when natural tokenScore < MIN_SCORE_FOR_POSITION_BOOST.
+      // Top-ranked results with zero token overlap are almost always unrelated fuzzy hits;
+      // boosting them past the threshold would surface wrong suggestions to the user and
+      // block fallback to other providers. (Regression: bug where unrelated AniList #1
+      // was returned with confidence 0.85 for queries the manga didn't actually match.)
       const mediaItems = [
         makeAniListMedia(1, 'Attack on Titan'),
         makeAniListMedia(2, 'Demon Slayer'),
@@ -210,12 +213,22 @@ describe('searchWithFallback', () => {
 
       const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
 
-      // Top 3 pass threshold via position boost (0.85, 0.75, 0.65)
-      // Results 4-6 have 0 token score and no boost → below threshold
-      // Only the 2 above-threshold results are returned (0.85 and 0.75 pass 0.7)
-      expect(results.length).toBeGreaterThanOrEqual(2)
-      expect(results[0].confidence).toBe(0.85)
-      expect(mockSearchMangaDex).not.toHaveBeenCalled()
+      // All have zero shared tokens with "Solo Leveling" → no boost applied.
+      // None pass threshold → falls through to low-confidence return (top 5, all at 0).
+      expect(results.length).toBeLessThanOrEqual(5)
+      expect(results.every((r) => r.confidence === 0)).toBe(true)
+    })
+
+    it('still applies position boost when there is at least minimum token overlap (typo case)', async () => {
+      // "Solo Lvling" (typo) vs "Solo Leveling" — Jaccard {solo}/{solo,lvling,leveling} = 1/3
+      // → natural score 0.3, meets the 0.3 floor, position boost applies → 0.85.
+      const media = makeAniListMedia(1, 'Solo Leveling')
+      mockSearchAniList.mockResolvedValue([media])
+
+      const results = await searchWithFallback('Solo Lvling', 'Solo Lvling')
+
+      expect(results).toHaveLength(1)
+      expect(results[0].confidence).toBeGreaterThanOrEqual(CONFIDENCE_THRESHOLD)
     })
 
     it('returns fewer than 5 if AniList returned fewer results', async () => {
@@ -226,7 +239,7 @@ describe('searchWithFallback', () => {
 
       const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
 
-      // Both get position boost (0.85, 0.75) → both above threshold
+      // Zero token overlap → no boost → fall through to low-confidence return.
       expect(results).toHaveLength(2)
       expect(mockSearchMangaDex).not.toHaveBeenCalled()
     })
@@ -447,15 +460,47 @@ describe('searchWithFallback', () => {
   // -------------------------------------------------------------------------
 
   describe('ComicK provider', () => {
-    it('returns ComicK results when above threshold (AniList and MangaDex not called)', async () => {
+    it('returns ComicK above-threshold result; AniList is always queried in parallel, MangaDex is skipped', async () => {
       mockSearchComicK.mockResolvedValue([makeComicKMedia('ck-1', 'Solo Leveling')])
+      // AniList not explicitly mocked → returns [] from beforeEach default? no — falls back to vi.fn() default (undefined).
+      // Explicitly stub to empty so the parallel query resolves cleanly.
+      mockSearchAniList.mockResolvedValue([])
 
       const results = await searchWithFallback('Solo Leveling', 'Solo Leveling')
 
       expect(results).toHaveLength(1)
       expect(results[0].provider).toBe('comick')
-      expect(mockSearchAniList).not.toHaveBeenCalled()
+      // ComicK + AniList are queried in parallel, so AniList is always called.
+      expect(mockSearchAniList).toHaveBeenCalledOnce()
+      // MangaDex is only used as a fallback when both ComicK and AniList return empty.
       expect(mockSearchMangaDex).not.toHaveBeenCalled()
+    })
+
+    it('shows both ComicK and AniList suggestions, ranking the AniList correct match first', async () => {
+      // Regression for the "Serene Bird" case (the actual bug, not the simplified version above):
+      // ComicK has 18 fuzzy matches sharing one token with the query — natural Jaccard 1/3 ≈ 0.3,
+      // which is at the boost floor → top 2 ComicK results get boosted to 0.85/0.75 (above threshold).
+      // AniList has the correct entry (natural 1.0). The old waterfall returned only ComicK's wrong
+      // boosted matches and never queried AniList. With parallel + merge, both providers' suggestions
+      // appear, but the AniList confident match ranks first by natural confidence.
+      mockSearchComicK.mockResolvedValue([
+        makeComicKMedia('ck-bird-1', 'Bird Watcher'),
+        makeComicKMedia('ck-bird-2', 'Serene Land'),
+      ])
+      mockSearchAniList.mockResolvedValue([
+        makeAniListMedia(110766, 'Serene Bird', 'Serene Bird', '고요새', [], 'KR'),
+      ])
+
+      const results = await searchWithFallback('Serene Bird', 'Serene Bird')
+
+      // Top result is the AniList correct match at confidence 1.0.
+      expect(results[0].provider).toBe('anilist')
+      expect(results[0].id).toBe('110766')
+      expect(results[0].confidence).toBe(1.0)
+      // ComicK's boosted (but wrong) suggestions also appear, ranked below.
+      const comickIds = results.filter((r) => r.provider === 'comick').map((r) => r.id)
+      expect(comickIds).toContain('ck-bird-1')
+      expect(comickIds).toContain('ck-bird-2')
     })
 
     it('falls through to AniList when ComicK returns empty', async () => {
@@ -487,6 +532,28 @@ describe('searchWithFallback', () => {
 
       expect(mockSearchMangaDex).toHaveBeenCalledOnce()
       expect(results[0].provider).toBe('mangadex')
+    })
+
+    it('zero-overlap ComicK results are not boosted; only the AniList confident match is returned', async () => {
+      // ComicK results that share no tokens with the query get natural score 0 and (per the
+      // boost floor) confidence stays at 0 — well below threshold. The AniList confident match
+      // is returned alone because the ComicK results are below the threshold filter.
+      mockSearchComicK.mockResolvedValue([
+        makeComicKMedia('ck-wrong-1', 'Wandering Cloud'),
+        makeComicKMedia('ck-wrong-2', 'Iron Mountain'),
+        makeComicKMedia('ck-wrong-3', 'Empty Sky'),
+      ])
+      mockSearchAniList.mockResolvedValue([
+        makeAniListMedia(110766, 'Serene Bird', 'Serene Bird', '고요새', [], 'KR'),
+      ])
+
+      const results = await searchWithFallback('Serene Bird', 'Serene Bird')
+
+      expect(mockSearchAniList).toHaveBeenCalledOnce()
+      expect(results).toHaveLength(1)
+      expect(results[0].provider).toBe('anilist')
+      expect(results[0].id).toBe('110766')
+      expect(results[0].confidence).toBe(1.0)
     })
 
     it('normalizes ComicK result into UnifiedSearchResult shape', async () => {

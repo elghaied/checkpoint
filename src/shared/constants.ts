@@ -3,6 +3,11 @@ export const CONFIDENCE_THRESHOLD = 0.7
 export const MAX_LOW_CONFIDENCE_RESULTS = 5
 export const SEARCH_RESULTS_PER_PAGE = 10
 export const BATCH_FETCH_PAGE_SIZE = 50
+// Minimum natural token-overlap score required before applying a position boost.
+// Below this, top-ranked results are assumed to be fuzzy/unrelated (e.g. ComicK
+// returning anything for a manga not in its database) and should not be promoted
+// above the confidence threshold.
+export const MIN_SCORE_FOR_POSITION_BOOST = 0.3
 
 // Content script injection
 export const CONTENT_SCRIPT_MAX_RETRIES = 3
