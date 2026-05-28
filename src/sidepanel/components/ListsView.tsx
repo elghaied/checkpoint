@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { CustomList, TrackedItem } from '@/shared/types'
 import { applyFilters } from '@/shared/filterEngine'
-import { buildListTree, type ListNode } from '@/shared/listTree'
+import { buildListTree, descendantIds, type ListNode } from '@/shared/listTree'
 import { MAX_LIST_NESTING_DEPTH } from '@/shared/constants'
 import './ListsView.css'
 
@@ -91,6 +91,7 @@ const ListsView: React.FC<ListsViewProps> = ({
     const isConfirmingDelete = confirmingDelete === list.id
     const hasChildren = children.length > 0
     const isExpanded = expandedIds.has(list.id)
+    const descendantCount = descendantIds(list.id, lists).length
     const canAddSubList = list.type === 'manual' && depth < MAX_LIST_NESTING_DEPTH - 1
 
     return (
@@ -157,6 +158,7 @@ const ListsView: React.FC<ListsViewProps> = ({
               </button>
             )}
             <button
+              type="button"
               className="lists-view__rename-btn"
               onClick={() => {
                 setRenamingId(list.id)
@@ -170,12 +172,13 @@ const ListsView: React.FC<ListsViewProps> = ({
               </svg>
             </button>
             <button
+              type="button"
               className={`lists-view__delete-btn${isConfirmingDelete ? ' lists-view__delete-btn--confirm' : ''}`}
               onClick={(e) => handleDeleteClick(e, list.id)}
               title={isConfirmingDelete ? 'Confirm delete' : 'Delete list'}
             >
               {isConfirmingDelete ? (
-                children.length > 0 ? `Delete & ${children.length} sub?` : 'Confirm?'
+                descendantCount > 0 ? `Delete & ${descendantCount} sub?` : 'Confirm?'
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
