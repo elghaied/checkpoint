@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { CustomList, TrackedItem } from '@/shared/types'
 import { applyFilters } from '@/shared/filterEngine'
-import { buildListTree, descendantIds, type ListNode } from '@/shared/listTree'
+import { buildListTree, descendantIds, filterListTreeBySearch, type ListNode } from '@/shared/listTree'
 import { MAX_LIST_NESTING_DEPTH } from '@/shared/constants'
 import './ListsView.css'
 
@@ -28,6 +28,22 @@ function getListItemCount(list: CustomList, allItems: TrackedItem[]): number {
 
 const INDENT_PX_PER_LEVEL = 16
 
+function renderNameWithHighlight(name: string, query: string): React.ReactNode {
+  const trimmed = query.trim()
+  if (trimmed === '') return name
+  const lower = name.toLowerCase()
+  const needle = trimmed.toLowerCase()
+  const idx = lower.indexOf(needle)
+  if (idx === -1) return name
+  return (
+    <>
+      {name.slice(0, idx)}
+      <mark className="lists-view__highlight">{name.slice(idx, idx + trimmed.length)}</mark>
+      {name.slice(idx + trimmed.length)}
+    </>
+  )
+}
+
 const ListsView: React.FC<ListsViewProps> = ({
   lists,
   allItems,
@@ -40,9 +56,17 @@ const ListsView: React.FC<ListsViewProps> = ({
   const [renameValue, setRenameValue] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
   const tree = useMemo(() => buildListTree(lists), [lists])
+
+  const search = useMemo(
+    () => filterListTreeBySearch(lists, searchQuery),
+    [lists, searchQuery],
+  )
+
+  const isSearchActive = searchQuery.trim() !== ''
 
   useEffect(() => {
     if (renamingId && renameInputRef.current) {
@@ -86,11 +110,14 @@ const ListsView: React.FC<ListsViewProps> = ({
 
   function renderNode(node: ListNode): React.ReactNode {
     const { list, children, depth } = node
+    if (isSearchActive && !search.visibleIds.has(list.id)) return null
     const count = getListItemCount(list, allItems)
     const isRenaming = renamingId === list.id
     const isConfirmingDelete = confirmingDelete === list.id
     const hasChildren = children.length > 0
-    const isExpanded = expandedIds.has(list.id)
+    const isExpanded = isSearchActive
+      ? search.autoExpandedIds.has(list.id) || expandedIds.has(list.id)
+      : expandedIds.has(list.id)
     const descendantCount = descendantIds(list.id, lists).length
     const canAddSubList = list.type === 'manual' && depth < MAX_LIST_NESTING_DEPTH - 1
 
@@ -137,7 +164,9 @@ const ListsView: React.FC<ListsViewProps> = ({
                 }}
               />
             ) : (
-              <span className="lists-view__item-name">{list.name}</span>
+              <span className="lists-view__item-name">
+                {renderNameWithHighlight(list.name, searchQuery)}
+              </span>
             )}
             <span className="lists-view__item-count">
               {count} {count === 1 ? 'item' : 'items'}
@@ -206,9 +235,33 @@ const ListsView: React.FC<ListsViewProps> = ({
         </button>
       </div>
 
+      <div className="lists-view__search">
+        <input
+          type="text"
+          className="lists-view__search-input"
+          placeholder="Search lists…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {isSearchActive && (
+          <button
+            type="button"
+            className="lists-view__search-clear"
+            onClick={() => setSearchQuery('')}
+            aria-label="Clear search"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
       {tree.length === 0 ? (
         <div className="lists-view__empty">
           <p>No lists yet. Create one to organize your reading.</p>
+        </div>
+      ) : isSearchActive && search.visibleIds.size === 0 ? (
+        <div className="lists-view__empty">
+          <p>No lists matching "{searchQuery}".</p>
         </div>
       ) : (
         <ul className="lists-view__list">
