@@ -213,9 +213,9 @@ export default function App() {
 
   // ---- List handlers ----
 
-  const handleCreateList = async () => {
+  const handleCreateList = async (parentId: string | null = null) => {
     const name = `List ${lists.length + 1}`
-    await createList({ name, type: 'manual', itemIds: [], filters: null, parentId: null })
+    await createList({ name, type: 'manual', itemIds: [], filters: null, parentId })
   }
 
   const handleRenameList = async (id: string, name: string) => {
