@@ -1,0 +1,33 @@
+.folder-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.folder-items__card-wrap {
+  position: relative;
+}
+
+.folder-items__remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  backdrop-filter: blur(4px);
+}
+
+.folder-items__remove-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-glow);
+  background: rgba(233, 69, 96, 0.1);
+}
