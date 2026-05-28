@@ -1,0 +1,78 @@
+.move-list-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.move-list-modal {
+  background: var(--bg-elevated, #1f1f1f);
+  color: var(--text-primary, #eee);
+  border-radius: 8px;
+  min-width: 280px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.move-list-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+.move-list-modal__header h3 { margin: 0; font-size: 14px; }
+
+.move-list-modal__close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #888);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.move-list-modal__tree, .move-list-modal__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.move-list-modal__row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #eee);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.move-list-modal__row:hover:not(:disabled) {
+  background: var(--row-hover, rgba(255,255,255,0.05));
+}
+.move-list-modal__row--selected {
+  background: var(--accent-bg, rgba(80, 140, 255, 0.2));
+}
+.move-list-modal__row--disabled,
+.move-list-modal__row:disabled {
+  color: var(--text-disabled, #555);
+  cursor: not-allowed;
+}
+
+.move-list-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+}
