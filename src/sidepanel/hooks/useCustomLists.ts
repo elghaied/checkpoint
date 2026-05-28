@@ -8,7 +8,7 @@ async function fetchLists(): Promise<CustomList[]> {
   // Create default lists on first access
   if (result.length === 0) {
     for (const name of DEFAULT_LIST_NAMES) {
-      await createList({ name, type: 'manual', itemIds: [], filters: null })
+      await createList({ name, type: 'manual', itemIds: [], filters: null, parentId: null })
     }
     result = await getLists()
   }

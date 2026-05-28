@@ -245,6 +245,7 @@ export interface CustomList {
     genres: FilterEntry[]
     tags: FilterEntry[]
   } | null
+  parentId: string | null
   createdAt: number
   updatedAt: number
 }

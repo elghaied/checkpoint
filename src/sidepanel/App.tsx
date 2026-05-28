@@ -215,7 +215,7 @@ export default function App() {
 
   const handleCreateList = async () => {
     const name = `List ${lists.length + 1}`
-    await createList({ name, type: 'manual', itemIds: [], filters: null })
+    await createList({ name, type: 'manual', itemIds: [], filters: null, parentId: null })
   }
 
   const handleRenameList = async (id: string, name: string) => {
@@ -270,6 +270,7 @@ export default function App() {
         genres: filters.genres,
         tags: filters.tags,
       },
+      parentId: null,
     })
     filterPanel.clearFilters()
     filterPanel.setIsOpen(false)

@@ -468,4 +468,48 @@ describe('StorageService', () => {
       expect(settings.checkIntervalMinutes).toBe(120)
     })
   })
+
+  describe('list parentId backwards-compat', () => {
+    it('defaults parentId to null when stored list has no parentId field', async () => {
+      // Simulate a list written by a previous version (no parentId)
+      const legacyList = {
+        id: 'legacy-1',
+        name: 'Reading',
+        type: 'manual',
+        itemIds: [],
+        filters: null,
+        createdAt: 1000,
+        updatedAt: 1000,
+      }
+      await new Promise<void>((resolve) =>
+        chrome.storage.local.set({ customLists: [legacyList] }, () => resolve()),
+      )
+
+      const result = await service.getLists()
+
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe('legacy-1')
+      expect(result[0].parentId).toBeNull()
+    })
+
+    it('preserves parentId when present in stored list', async () => {
+      const storedList = {
+        id: 'child-1',
+        name: 'Cyberpunk',
+        type: 'manual',
+        itemIds: [],
+        filters: null,
+        parentId: 'parent-1',
+        createdAt: 1000,
+        updatedAt: 1000,
+      }
+      await new Promise<void>((resolve) =>
+        chrome.storage.local.set({ customLists: [storedList] }, () => resolve()),
+      )
+
+      const result = await service.getLists()
+
+      expect(result[0].parentId).toBe('parent-1')
+    })
+  })
 })

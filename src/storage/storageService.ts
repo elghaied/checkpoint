@@ -100,7 +100,15 @@ function writeCustomTags(tags: CustomTagRegistry): Promise<void> {
 function readLists(): Promise<CustomList[]> {
   return new Promise((resolve) => {
     chrome.storage.local.get(CUSTOM_LISTS_KEY, (result) => {
-      resolve((result[CUSTOM_LISTS_KEY] as CustomList[]) ?? [])
+      const raw = (result[CUSTOM_LISTS_KEY] as unknown as Record<string, unknown>[]) ?? []
+      // Backwards-compat: records written before nested-lists shipped have no parentId.
+      // Default missing field to null so tree-builders see them as root-level lists.
+      const normalized = raw.map((list): CustomList =>
+        'parentId' in list
+          ? (list as unknown as CustomList)
+          : { ...(list as unknown as Omit<CustomList, 'parentId'>), parentId: null },
+      )
+      resolve(normalized)
     })
   })
 }
