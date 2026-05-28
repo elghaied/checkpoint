@@ -11,7 +11,6 @@ import SearchModal from './components/SearchModal'
 import EditModal from './components/EditModal'
 import SettingsPage from './components/SettingsPage'
 import ListsView from './components/ListsView'
-import ListDetail from './components/ListDetail'
 import ListItemPicker from './components/ListItemPicker'
 import MoveListModal from './components/MoveListModal'
 import { FilterPanel } from './components/FilterPanel'
@@ -62,9 +61,16 @@ export default function App() {
 
   // Lists state
   const { lists, refresh: refreshLists, createList, updateList, deleteList } = useCustomLists()
-  const [selectedList, setSelectedList] = useState<CustomList | null>(null)
+  const [currentListId, setCurrentListId] = useState<string | null>(null)
   const [showItemPicker, setShowItemPicker] = useState(false)
   const [movingList, setMovingList] = useState<CustomList | null>(null)
+
+  // If the open folder was deleted (or cascade-deleted via an ancestor), treat it as root.
+  const safeCurrentListId = useMemo(
+    () => (currentListId !== null && lists.some((l) => l.id === currentListId) ? currentListId : null),
+    [currentListId, lists],
+  )
+  const currentList = safeCurrentListId ? lists.find((l) => l.id === safeCurrentListId) ?? null : null
 
   useEffect(() => {
     ping().catch(() => {
@@ -226,9 +232,6 @@ export default function App() {
 
   const handleDeleteList = async (id: string) => {
     await deleteList(id)
-    if (selectedList?.id === id) {
-      setSelectedList(null)
-    }
   }
 
   const handleMoveList = (list: CustomList) => {
@@ -246,35 +249,32 @@ export default function App() {
     }
   }
 
-  const handleOpenList = (list: CustomList) => {
-    setSelectedList(list)
-  }
-
-  const handleListBack = () => {
-    setSelectedList(null)
-    refreshLists()
-  }
-
   const handleAddItemsToList = () => {
     setShowItemPicker(true)
   }
 
   const handleItemPickerSave = async (ids: string[]) => {
-    if (!selectedList) return
-    await updateList(selectedList.id, { itemIds: ids })
-    // Update selectedList reference so ListDetail re-renders with new items
-    const updated = lists.find((l) => l.id === selectedList.id)
-    if (updated) {
-      setSelectedList({ ...updated, itemIds: ids })
-    }
+    if (!currentListId) return
+    await updateList(currentListId, { itemIds: ids })
     setShowItemPicker(false)
   }
 
   const handleRemoveItemFromList = async (providerId: string) => {
-    if (!selectedList) return
-    const newIds = selectedList.itemIds.filter((id) => id !== providerId)
-    await updateList(selectedList.id, { itemIds: newIds })
-    setSelectedList((prev) => prev ? { ...prev, itemIds: newIds } : null)
+    const cur = lists.find((l) => l.id === currentListId)
+    if (!cur) return
+    await updateList(cur.id, { itemIds: cur.itemIds.filter((id) => id !== providerId) })
+  }
+
+  const handleEditFilters = (list: CustomList) => {
+    if (!list.filters) return
+    filterPanel.setFilters({
+      formats: list.filters.formats,
+      genres: list.filters.genres,
+      tags: list.filters.tags,
+    })
+    filterPanel.setIsOpen(true)
+    setView('general')
+    setCurrentListId(null)
   }
 
   const handleSaveAsList = async (name: string, filters: FilterState) => {
@@ -307,44 +307,26 @@ export default function App() {
     if (view === 'lists') {
       return (
         <>
-          {selectedList ? (
-            <ListDetail
-              list={selectedList}
-              allItems={items}
-              onBack={handleListBack}
-              onAddItems={handleAddItemsToList}
-              tagRegistry={tagRegistry}
-              onEditFilters={() => {
-                if (selectedList?.filters) {
-                  filterPanel.setFilters({
-                    formats: selectedList.filters.formats,
-                    genres: selectedList.filters.genres,
-                    tags: selectedList.filters.tags,
-                  })
-                  filterPanel.setIsOpen(true)
-                  setView('general')
-                  setSelectedList(null)
-                }
-              }}
-              onRemoveItem={handleRemoveItemFromList}
-              onItemEdit={handleEdit}
-            />
-          ) : (
-            <ListsView
-              lists={lists}
-              allItems={items}
-              onOpenList={handleOpenList}
-              onCreateList={handleCreateList}
-              onRenameList={handleRenameList}
-              onDeleteList={handleDeleteList}
-              onMoveList={handleMoveList}
-            />
-          )}
+          <ListsView
+            lists={lists}
+            allItems={items}
+            currentListId={safeCurrentListId}
+            onNavigate={setCurrentListId}
+            onCreateList={handleCreateList}
+            onRenameList={handleRenameList}
+            onDeleteList={handleDeleteList}
+            onMoveList={handleMoveList}
+            onAddItems={handleAddItemsToList}
+            onEditFilters={handleEditFilters}
+            onRemoveItem={handleRemoveItemFromList}
+            onItemEdit={handleEdit}
+            tagRegistry={tagRegistry}
+          />
 
-          {showItemPicker && selectedList && (
+          {showItemPicker && currentList && (
             <ListItemPicker
               allItems={items}
-              selectedIds={selectedList.itemIds}
+              selectedIds={currentList.itemIds}
               onSave={handleItemPickerSave}
               onClose={() => setShowItemPicker(false)}
             />

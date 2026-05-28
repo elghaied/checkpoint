@@ -1,24 +1,29 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import type { CustomList, TrackedItem } from '@/shared/types'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import type { CustomList, CustomTagRegistry, TrackedItem } from '@/shared/types'
 import { applyFilters } from '@/shared/filterEngine'
-import { buildListTree, descendantIds, filterListTreeBySearch, type ListNode } from '@/shared/listTree'
+import { searchListsFlat, ancestorIds, descendantIds, depthOf } from '@/shared/listTree'
 import { MAX_LIST_NESTING_DEPTH } from '@/shared/constants'
+import FolderItems from './FolderItems'
 import './ListsView.css'
 
 interface ListsViewProps {
   lists: CustomList[]
   allItems: TrackedItem[]
-  onOpenList: (list: CustomList) => void
+  currentListId: string | null
+  onNavigate: (id: string | null) => void
   onCreateList: (parentId: string | null) => void
   onRenameList: (id: string, name: string) => void
   onDeleteList: (id: string) => void
   onMoveList: (list: CustomList) => void
+  onAddItems: () => void
+  onEditFilters: (list: CustomList) => void
+  onRemoveItem: (providerId: string) => void
+  onItemEdit: (item: TrackedItem) => void
+  tagRegistry?: CustomTagRegistry
 }
 
 function getListItemCount(list: CustomList, allItems: TrackedItem[]): number {
-  if (list.type === 'manual') {
-    return list.itemIds.length
-  }
+  if (list.type === 'manual') return list.itemIds.length
   if (!list.filters) return 0
   return applyFilters(allItems, {
     formats: list.filters.formats,
@@ -27,14 +32,10 @@ function getListItemCount(list: CustomList, allItems: TrackedItem[]): number {
   }).length
 }
 
-const INDENT_PX_PER_LEVEL = 16
-
 function renderNameWithHighlight(name: string, query: string): React.ReactNode {
   const trimmed = query.trim()
   if (trimmed === '') return name
-  const lower = name.toLowerCase()
-  const needle = trimmed.toLowerCase()
-  const idx = lower.indexOf(needle)
+  const idx = name.toLowerCase().indexOf(trimmed.toLowerCase())
   if (idx === -1) return name
   return (
     <>
@@ -45,30 +46,44 @@ function renderNameWithHighlight(name: string, query: string): React.ReactNode {
   )
 }
 
+const FolderIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-label="List">
+    <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+  </svg>
+)
+
+const SmartIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-label="Smart list">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+  </svg>
+)
+
 const ListsView: React.FC<ListsViewProps> = ({
   lists,
   allItems,
-  onOpenList,
+  currentListId,
+  onNavigate,
   onCreateList,
   onRenameList,
   onDeleteList,
   onMoveList,
+  onAddItems,
+  onEditFilters,
+  onRemoveItem,
+  onItemEdit,
+  tagRegistry,
 }) => {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-  const [searchQuery, setSearchQuery] = useState('')
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
-  const tree = useMemo(() => buildListTree(lists), [lists])
-
-  const search = useMemo(
-    () => filterListTreeBySearch(lists, searchQuery),
-    [lists, searchQuery],
-  )
-
+  const currentList = currentListId ? lists.find((l) => l.id === currentListId) ?? null : null
+  const childLists = lists
+    .filter((l) => l.parentId === currentListId)
+    .sort((a, b) => a.name.localeCompare(b.name))
   const isSearchActive = searchQuery.trim() !== ''
 
   useEffect(() => {
@@ -92,220 +107,280 @@ const ListsView: React.FC<ListsViewProps> = ({
   }, [menuOpenFor])
 
   const handleRenameSubmit = useCallback((id: string) => {
-    if (!renamingId) return
     const trimmed = renameValue.trim()
     if (trimmed) onRenameList(id, trimmed)
     setRenamingId(null)
     setRenameValue('')
-  }, [renamingId, renameValue, onRenameList])
+  }, [renameValue, onRenameList])
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     if (confirmingDelete === id) {
       onDeleteList(id)
       setConfirmingDelete(null)
+      setMenuOpenFor(null)
     } else {
       setConfirmingDelete(id)
     }
   }
 
-  const handleRowClick = (list: CustomList) => {
-    if (renamingId === list.id) return
-    setConfirmingDelete(null)
-    onOpenList(list)
-  }
-
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function renderNode(node: ListNode): React.ReactNode {
-    const { list, children, depth } = node
-    if (isSearchActive && !search.visibleIds.has(list.id)) return null
+  function renderFolderRow(list: CustomList): React.ReactNode {
     const count = getListItemCount(list, allItems)
     const isRenaming = renamingId === list.id
     const isConfirmingDelete = confirmingDelete === list.id
-    const hasChildren = children.length > 0
-    const isExpanded = isSearchActive
-      ? search.autoExpandedIds.has(list.id) || expandedIds.has(list.id)
-      : expandedIds.has(list.id)
     const descendantCount = descendantIds(list.id, lists).length
-    const canAddSubList = list.type === 'manual' && depth < MAX_LIST_NESTING_DEPTH - 1
 
     return (
       <li
         key={list.id}
         className="lists-view__item"
-        onClick={() => handleRowClick(list)}
-        style={{ paddingLeft: `${depth * INDENT_PX_PER_LEVEL}px` }}
+        onClick={() => {
+          if (renamingId === list.id) return
+          setConfirmingDelete(null)
+          onNavigate(list.id)
+        }}
       >
-        <div className="lists-view__row">
-          <button
-            type="button"
-            className={`lists-view__chevron${hasChildren ? '' : ' lists-view__chevron--hidden'}`}
-            aria-label={isExpanded ? 'Collapse' : 'Expand'}
-            onClick={(e) => { e.stopPropagation(); toggleExpanded(list.id) }}
-          >
-            {hasChildren ? (isExpanded ? '▾' : '▸') : ''}
-          </button>
-
-          <div className="lists-view__item-icon">
-            {list.type === 'smart' ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-label="Smart list">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-label="Manual list">
-                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
-              </svg>
-            )}
-          </div>
-
-          <div className="lists-view__item-body">
-            {isRenaming ? (
-              <input
-                ref={renameInputRef}
-                className="lists-view__rename-input"
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onBlur={() => handleRenameSubmit(list.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleRenameSubmit(list.id)
-                  if (e.key === 'Escape') { setRenamingId(null); setRenameValue('') }
-                }}
-              />
-            ) : (
-              <span className="lists-view__item-name">
-                {renderNameWithHighlight(list.name, searchQuery)}
-              </span>
-            )}
-            <span className="lists-view__item-count">
-              {count} {count === 1 ? 'item' : 'items'}
-            </span>
-          </div>
-
-          <div className="lists-view__item-actions" onClick={(e) => e.stopPropagation()}>
-            {canAddSubList && (
-              <button
-                type="button"
-                className="lists-view__add-sub-btn"
-                onClick={() => onCreateList(list.id)}
-                title="Add sub-list"
-                aria-label="Add sub-list"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/>
-                </svg>
-              </button>
-            )}
-            <div className="lists-view__overflow">
-              <button
-                type="button"
-                className="lists-view__overflow-btn"
-                onClick={() => {
-                  setConfirmingDelete(null)
-                  setMenuOpenFor(menuOpenFor === list.id ? null : list.id)
-                }}
-                aria-label="More actions"
-                aria-haspopup="menu"
-                aria-expanded={menuOpenFor === list.id}
-              >
-                ⋮
-              </button>
-              {menuOpenFor === list.id && (
-                <div className="lists-view__overflow-menu" role="menu">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="lists-view__overflow-item"
-                    onClick={() => {
-                      setMenuOpenFor(null)
-                      setRenamingId(list.id)
-                      setRenameValue(list.name)
-                      setConfirmingDelete(null)
-                    }}
-                  >
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="lists-view__overflow-item"
-                    onClick={() => { setMenuOpenFor(null); onMoveList(list) }}
-                  >
-                    Move to…
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`lists-view__overflow-item lists-view__overflow-item--danger${isConfirmingDelete ? ' lists-view__overflow-item--confirm' : ''}`}
-                    onClick={(e) => handleDeleteClick(e, list.id)}
-                  >
-                    {isConfirmingDelete
-                      ? (descendantCount > 0 ? `Delete & ${descendantCount} sub?` : 'Confirm delete?')
-                      : 'Delete'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="lists-view__item-icon">
+          {list.type === 'smart' ? <SmartIcon /> : <FolderIcon />}
         </div>
 
-        {hasChildren && isExpanded && (
-          <ul className="lists-view__children">
-            {children.map(renderNode)}
-          </ul>
-        )}
+        <div className="lists-view__item-body">
+          {isRenaming ? (
+            <input
+              ref={renameInputRef}
+              className="lists-view__rename-input"
+              value={renameValue}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={() => handleRenameSubmit(list.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit(list.id)
+                if (e.key === 'Escape') { setRenamingId(null); setRenameValue('') }
+              }}
+            />
+          ) : (
+            <span className="lists-view__item-name">{list.name}</span>
+          )}
+          <span className="lists-view__item-count">
+            {count} {count === 1 ? 'item' : 'items'}
+          </span>
+        </div>
+
+        <div className="lists-view__item-actions" onClick={(e) => e.stopPropagation()}>
+          <div className="lists-view__overflow">
+            <button
+              type="button"
+              className="lists-view__overflow-btn"
+              onClick={() => {
+                setConfirmingDelete(null)
+                setMenuOpenFor(menuOpenFor === list.id ? null : list.id)
+              }}
+              aria-label="More actions"
+              aria-haspopup="menu"
+              aria-expanded={menuOpenFor === list.id}
+            >
+              ⋮
+            </button>
+            {menuOpenFor === list.id && (
+              <div className="lists-view__overflow-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="lists-view__overflow-item"
+                  onClick={() => {
+                    setMenuOpenFor(null)
+                    setRenamingId(list.id)
+                    setRenameValue(list.name)
+                    setConfirmingDelete(null)
+                  }}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="lists-view__overflow-item"
+                  onClick={() => { setMenuOpenFor(null); onMoveList(list) }}
+                >
+                  Move to…
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={`lists-view__overflow-item lists-view__overflow-item--danger${isConfirmingDelete ? ' lists-view__overflow-item--confirm' : ''}`}
+                  onClick={(e) => handleDeleteClick(e, list.id)}
+                >
+                  {isConfirmingDelete
+                    ? (descendantCount > 0 ? `Delete & ${descendantCount} sub?` : 'Confirm delete?')
+                    : 'Delete'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </li>
     )
   }
 
-  return (
-    <div className="lists-view">
-      <div className="lists-view__header">
-        <h2 className="lists-view__title">My Lists</h2>
-        <button className="btn btn--secondary lists-view__new-btn" onClick={() => onCreateList(null)}>
-          + New List
+  const searchBar = (
+    <div className="lists-view__search">
+      <input
+        type="text"
+        className="lists-view__search-input"
+        placeholder="Search lists…"
+        aria-label="Search lists"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      {isSearchActive && (
+        <button
+          type="button"
+          className="lists-view__search-clear"
+          onClick={() => setSearchQuery('')}
+          aria-label="Clear search"
+        >
+          ×
         </button>
-      </div>
+      )}
+    </div>
+  )
 
-      <div className="lists-view__search">
-        <input
-          type="text"
-          className="lists-view__search-input"
-          placeholder="Search lists…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        {isSearchActive && (
-          <button
-            type="button"
-            className="lists-view__search-clear"
-            onClick={() => setSearchQuery('')}
-            aria-label="Clear search"
-          >
-            ×
-          </button>
+  if (isSearchActive) {
+    const results = searchListsFlat(lists, searchQuery)
+    return (
+      <div className="lists-view">
+        {searchBar}
+        {results.length === 0 ? (
+          <div className="lists-view__empty">
+            <p>No lists matching &ldquo;{searchQuery}&rdquo;.</p>
+          </div>
+        ) : (
+          <ul className="lists-view__list">
+            {results.map(({ list, path }) => (
+              <li
+                key={list.id}
+                className="lists-view__item"
+                onClick={() => { onNavigate(list.id); setSearchQuery('') }}
+              >
+                <div className="lists-view__item-icon">
+                  {list.type === 'smart' ? <SmartIcon /> : <FolderIcon />}
+                </div>
+                <div className="lists-view__item-body">
+                  <span className="lists-view__item-name">
+                    {renderNameWithHighlight(list.name, searchQuery)}
+                  </span>
+                  {path && <span className="lists-view__item-path">{path}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
+    )
+  }
 
-      {tree.length === 0 ? (
-        <div className="lists-view__empty">
-          <p>No lists yet. Create one to organize your reading.</p>
+  const breadcrumb = currentList ? (
+    <nav className="lists-view__breadcrumb">
+      {[
+        { id: null as string | null, name: 'My Lists' },
+        ...ancestorIds(currentList.id, lists)
+          .slice()
+          .reverse()
+          .map((aid) => {
+            const a = lists.find((l) => l.id === aid)
+            return a ? { id: a.id as string | null, name: a.name } : null
+          })
+          .filter((c): c is { id: string | null; name: string } => c !== null),
+        { id: currentList.id as string | null, name: currentList.name },
+      ].map((crumb, i, arr) => {
+        const isLast = i === arr.length - 1
+        return (
+          <span key={crumb.id ?? 'root'} className="lists-view__crumb-wrap">
+            {isLast ? (
+              <span className="lists-view__crumb lists-view__crumb--current">{crumb.name}</span>
+            ) : (
+              <button
+                type="button"
+                className="lists-view__crumb"
+                onClick={() => onNavigate(crumb.id)}
+              >
+                {crumb.name}
+              </button>
+            )}
+            {!isLast && <span className="lists-view__crumb-sep">/</span>}
+          </span>
+        )
+      })}
+    </nav>
+  ) : null
+
+  const canAddSubList =
+    currentList?.type === 'manual' &&
+    depthOf(currentList.id, lists) < MAX_LIST_NESTING_DEPTH - 1
+
+  const currentItemCount = currentList ? getListItemCount(currentList, allItems) : 0
+  const showEmpty = childLists.length === 0 && currentItemCount === 0
+
+  return (
+    <div className="lists-view">
+      {searchBar}
+      {breadcrumb}
+
+      <div className="lists-view__header">
+        <h2 className="lists-view__title">{currentList ? currentList.name : 'My Lists'}</h2>
+        <div className="lists-view__header-actions">
+          {currentList === null && (
+            <button className="btn btn--secondary lists-view__new-btn" onClick={() => onCreateList(null)}>
+              + New List
+            </button>
+          )}
+          {currentList?.type === 'manual' && (
+            <>
+              {canAddSubList && (
+                <button className="btn btn--secondary lists-view__new-btn" onClick={() => onCreateList(currentList.id)}>
+                  + Sub-list
+                </button>
+              )}
+              <button className="btn btn--secondary lists-view__new-btn" onClick={onAddItems}>
+                + Add Items
+              </button>
+            </>
+          )}
+          {currentList?.type === 'smart' && (
+            <button className="btn btn--secondary lists-view__new-btn" onClick={() => onEditFilters(currentList)}>
+              Edit Filters
+            </button>
+          )}
         </div>
-      ) : isSearchActive && search.visibleIds.size === 0 ? (
+      </div>
+
+      {showEmpty ? (
         <div className="lists-view__empty">
-          <p>No lists matching "{searchQuery}".</p>
+          {currentList === null ? (
+            <p>No lists yet. Create one to organize your reading.</p>
+          ) : currentList.type === 'smart' ? (
+            <p>No items match this list&apos;s filters.</p>
+          ) : (
+            <p>This list is empty. Add items or create a sub-list.</p>
+          )}
         </div>
       ) : (
-        <ul className="lists-view__list">
-          {tree.map(renderNode)}
-        </ul>
+        <>
+          {childLists.length > 0 && (
+            <ul className="lists-view__list">
+              {childLists.map((list) => renderFolderRow(list))}
+            </ul>
+          )}
+          {currentList && (
+            <FolderItems
+              list={currentList}
+              allItems={allItems}
+              onRemoveItem={onRemoveItem}
+              onItemEdit={onItemEdit}
+              tagRegistry={tagRegistry}
+            />
+          )}
+        </>
       )}
     </div>
   )
