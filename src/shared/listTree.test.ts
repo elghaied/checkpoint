@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildListTree, depthOf, descendantIds, ancestorIds } from './listTree'
+import { buildListTree, depthOf, descendantIds, ancestorIds, filterListTreeBySearch } from './listTree'
 import type { CustomList } from './types'
 
 function makeList(id: string, parentId: string | null, name = id, createdAt = 0): CustomList {
@@ -115,5 +115,59 @@ describe('ancestorIds', () => {
   it('terminates on an orphan parentId without infinite loop', () => {
     const lists = [makeList('orphan', 'missing-parent')]
     expect(ancestorIds('orphan', lists)).toEqual([])
+  })
+})
+
+describe('filterListTreeBySearch', () => {
+  const lists = [
+    makeList('reading', null, 'Reading', 100),
+    makeList('manhwa', 'reading', 'Manhwa', 200),
+    makeList('cyberpunk', 'manhwa', 'Cyberpunk', 300),
+    makeList('mecha', 'manhwa', 'Mecha', 400),
+    makeList('completed', null, 'Completed', 500),
+  ]
+
+  it('returns all-visible / no-overrides when query is empty', () => {
+    const result = filterListTreeBySearch(lists, '')
+
+    expect(result.visibleIds.has('reading')).toBe(true)
+    expect(result.visibleIds.has('completed')).toBe(true)
+    expect(result.autoExpandedIds.size).toBe(0)
+  })
+
+  it('matches list names case-insensitively', () => {
+    const result = filterListTreeBySearch(lists, 'CYBER')
+
+    expect(result.visibleIds.has('cyberpunk')).toBe(true)
+  })
+
+  it('keeps ancestors visible when a descendant matches', () => {
+    const result = filterListTreeBySearch(lists, 'cyber')
+
+    expect(result.visibleIds.has('cyberpunk')).toBe(true)
+    expect(result.visibleIds.has('manhwa')).toBe(true)
+    expect(result.visibleIds.has('reading')).toBe(true)
+  })
+
+  it('hides siblings that do not match and have no matching descendant', () => {
+    const result = filterListTreeBySearch(lists, 'cyber')
+
+    expect(result.visibleIds.has('mecha')).toBe(false)
+    expect(result.visibleIds.has('completed')).toBe(false)
+  })
+
+  it('auto-expands ancestors of matches', () => {
+    const result = filterListTreeBySearch(lists, 'cyber')
+
+    expect(result.autoExpandedIds.has('reading')).toBe(true)
+    expect(result.autoExpandedIds.has('manhwa')).toBe(true)
+    // The match itself does not need to be auto-expanded (it's a leaf in this fixture).
+    expect(result.autoExpandedIds.has('cyberpunk')).toBe(false)
+  })
+
+  it('returns empty visibleIds when nothing matches', () => {
+    const result = filterListTreeBySearch(lists, 'xyz')
+
+    expect(result.visibleIds.size).toBe(0)
   })
 })
