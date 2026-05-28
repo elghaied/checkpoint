@@ -221,3 +221,62 @@
   padding: 0 1px;
   border-radius: 2px;
 }
+
+.lists-view__overflow {
+  position: relative;
+  display: inline-flex;
+}
+
+.lists-view__overflow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+.lists-view__overflow-btn:hover {
+  background: var(--row-hover, rgba(255,255,255,0.05));
+  color: var(--text-primary, #eee);
+}
+
+.lists-view__overflow-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 140px;
+  background: var(--bg-elevated, #1f1f1f);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+}
+
+.lists-view__overflow-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #eee);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.lists-view__overflow-item:hover {
+  background: var(--row-hover, rgba(255,255,255,0.05));
+}
+.lists-view__overflow-item--danger {
+  color: var(--danger, #e88);
+}
+.lists-view__overflow-item--confirm {
+  background: rgba(232, 136, 136, 0.15);
+}

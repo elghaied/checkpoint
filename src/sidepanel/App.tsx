@@ -13,6 +13,7 @@ import SettingsPage from './components/SettingsPage'
 import ListsView from './components/ListsView'
 import ListDetail from './components/ListDetail'
 import ListItemPicker from './components/ListItemPicker'
+import MoveListModal from './components/MoveListModal'
 import { FilterPanel } from './components/FilterPanel'
 import { BackfillIndicator } from './components/BackfillIndicator'
 import { ImportBanner } from './components/ImportBanner'
@@ -63,6 +64,7 @@ export default function App() {
   const { lists, refresh: refreshLists, createList, updateList, deleteList } = useCustomLists()
   const [selectedList, setSelectedList] = useState<CustomList | null>(null)
   const [showItemPicker, setShowItemPicker] = useState(false)
+  const [movingList, setMovingList] = useState<CustomList | null>(null)
 
   useEffect(() => {
     ping().catch(() => {
@@ -229,6 +231,21 @@ export default function App() {
     }
   }
 
+  const handleMoveList = (list: CustomList) => {
+    setMovingList(list)
+  }
+
+  const handleMoveConfirm = async (newParentId: string | null) => {
+    if (!movingList) return
+    try {
+      await updateList(movingList.id, { parentId: newParentId })
+      setMovingList(null)
+    } catch (err) {
+      log.error('Move failed', err)
+      setMovingList(null)
+    }
+  }
+
   const handleOpenList = (list: CustomList) => {
     setSelectedList(list)
   }
@@ -320,6 +337,7 @@ export default function App() {
               onCreateList={handleCreateList}
               onRenameList={handleRenameList}
               onDeleteList={handleDeleteList}
+              onMoveList={handleMoveList}
             />
           )}
 
@@ -329,6 +347,15 @@ export default function App() {
               selectedIds={selectedList.itemIds}
               onSave={handleItemPickerSave}
               onClose={() => setShowItemPicker(false)}
+            />
+          )}
+
+          {movingList && (
+            <MoveListModal
+              lists={lists}
+              movingList={movingList}
+              onConfirm={handleMoveConfirm}
+              onClose={() => setMovingList(null)}
             />
           )}
 

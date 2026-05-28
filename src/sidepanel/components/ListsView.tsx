@@ -12,6 +12,7 @@ interface ListsViewProps {
   onCreateList: (parentId: string | null) => void
   onRenameList: (id: string, name: string) => void
   onDeleteList: (id: string) => void
+  onMoveList: (list: CustomList) => void
 }
 
 function getListItemCount(list: CustomList, allItems: TrackedItem[]): number {
@@ -51,12 +52,14 @@ const ListsView: React.FC<ListsViewProps> = ({
   onCreateList,
   onRenameList,
   onDeleteList,
+  onMoveList,
 }) => {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
 
   const tree = useMemo(() => buildListTree(lists), [lists])
@@ -74,6 +77,18 @@ const ListsView: React.FC<ListsViewProps> = ({
       renameInputRef.current.select()
     }
   }, [renamingId])
+
+  useEffect(() => {
+    if (menuOpenFor === null) return
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('.lists-view__overflow')) {
+        setMenuOpenFor(null)
+      }
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [menuOpenFor])
 
   const handleRenameSubmit = useCallback((id: string) => {
     if (!renamingId) return
@@ -176,6 +191,7 @@ const ListsView: React.FC<ListsViewProps> = ({
           <div className="lists-view__item-actions" onClick={(e) => e.stopPropagation()}>
             {canAddSubList && (
               <button
+                type="button"
                 className="lists-view__add-sub-btn"
                 onClick={() => onCreateList(list.id)}
                 title="Add sub-list"
@@ -186,34 +202,53 @@ const ListsView: React.FC<ListsViewProps> = ({
                 </svg>
               </button>
             )}
-            <button
-              type="button"
-              className="lists-view__rename-btn"
-              onClick={() => {
-                setRenamingId(list.id)
-                setRenameValue(list.name)
-                setConfirmingDelete(null)
-              }}
-              title="Rename list"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`lists-view__delete-btn${isConfirmingDelete ? ' lists-view__delete-btn--confirm' : ''}`}
-              onClick={(e) => handleDeleteClick(e, list.id)}
-              title={isConfirmingDelete ? 'Confirm delete' : 'Delete list'}
-            >
-              {isConfirmingDelete ? (
-                descendantCount > 0 ? `Delete & ${descendantCount} sub?` : 'Confirm?'
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                </svg>
+            <div className="lists-view__overflow">
+              <button
+                type="button"
+                className="lists-view__overflow-btn"
+                onClick={() => setMenuOpenFor(menuOpenFor === list.id ? null : list.id)}
+                aria-label="More actions"
+                aria-haspopup="menu"
+                aria-expanded={menuOpenFor === list.id}
+              >
+                ⋮
+              </button>
+              {menuOpenFor === list.id && (
+                <div className="lists-view__overflow-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="lists-view__overflow-item"
+                    onClick={() => {
+                      setMenuOpenFor(null)
+                      setRenamingId(list.id)
+                      setRenameValue(list.name)
+                      setConfirmingDelete(null)
+                    }}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="lists-view__overflow-item"
+                    onClick={() => { setMenuOpenFor(null); onMoveList(list) }}
+                  >
+                    Move to…
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`lists-view__overflow-item lists-view__overflow-item--danger${isConfirmingDelete ? ' lists-view__overflow-item--confirm' : ''}`}
+                    onClick={(e) => handleDeleteClick(e, list.id)}
+                  >
+                    {isConfirmingDelete
+                      ? (descendantCount > 0 ? `Delete & ${descendantCount} sub?` : 'Confirm delete?')
+                      : 'Delete'}
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
 
