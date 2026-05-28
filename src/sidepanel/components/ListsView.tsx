@@ -84,6 +84,7 @@ const ListsView: React.FC<ListsViewProps> = ({
       const target = e.target as HTMLElement
       if (!target.closest('.lists-view__overflow')) {
         setMenuOpenFor(null)
+        setConfirmingDelete(null)
       }
     }
     document.addEventListener('mousedown', onDocClick)
@@ -206,7 +207,10 @@ const ListsView: React.FC<ListsViewProps> = ({
               <button
                 type="button"
                 className="lists-view__overflow-btn"
-                onClick={() => setMenuOpenFor(menuOpenFor === list.id ? null : list.id)}
+                onClick={() => {
+                  setConfirmingDelete(null)
+                  setMenuOpenFor(menuOpenFor === list.id ? null : list.id)
+                }}
                 aria-label="More actions"
                 aria-haspopup="menu"
                 aria-expanded={menuOpenFor === list.id}
