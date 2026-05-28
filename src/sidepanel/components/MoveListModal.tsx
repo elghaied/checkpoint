@@ -59,10 +59,10 @@ const MoveListModal: React.FC<MoveListModalProps> = ({ lists, movingList, onConf
 
   return (
     <div className="move-list-modal__backdrop" onClick={onClose}>
-      <div className="move-list-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="move-list-modal" role="dialog" aria-modal="true" aria-label={`Move ${movingList.name}`} onClick={(e) => e.stopPropagation()}>
         <header className="move-list-modal__header">
           <h3>Move "{movingList.name}" to…</h3>
-          <button className="move-list-modal__close" onClick={onClose} aria-label="Close">×</button>
+          <button type="button" className="move-list-modal__close" onClick={onClose} aria-label="Close">×</button>
         </header>
 
         <ul className="move-list-modal__tree">
@@ -79,8 +79,9 @@ const MoveListModal: React.FC<MoveListModalProps> = ({ lists, movingList, onConf
         </ul>
 
         <footer className="move-list-modal__footer">
-          <button className="btn btn--secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
           <button
+            type="button"
             className="btn btn--primary"
             disabled={selectedParentId === undefined}
             onClick={() => {

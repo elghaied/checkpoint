@@ -38,10 +38,14 @@
   padding: 4px 8px;
 }
 
-.move-list-modal__tree, .move-list-modal__children {
+.move-list-modal__tree,
+.move-list-modal__children {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.move-list-modal__tree {
   overflow-y: auto;
   flex: 1;
 }
