@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildListTree, depthOf, descendantIds, ancestorIds, filterListTreeBySearch } from './listTree'
+import { buildListTree, depthOf, descendantIds, ancestorIds, filterListTreeBySearch, subtreeMaxDepthBelow } from './listTree'
 import type { CustomList } from './types'
 
 function makeList(id: string, parentId: string | null, name = id, createdAt = 0): CustomList {
@@ -169,5 +169,28 @@ describe('filterListTreeBySearch', () => {
     const result = filterListTreeBySearch(lists, 'xyz')
 
     expect(result.visibleIds.size).toBe(0)
+  })
+})
+
+describe('subtreeMaxDepthBelow', () => {
+  it('returns 0 for a leaf', () => {
+    const lists = [makeList('leaf', null)]
+    expect(subtreeMaxDepthBelow('leaf', lists)).toBe(0)
+  })
+
+  it('returns 1 with one child', () => {
+    const lists = [makeList('root', null), makeList('c', 'root')]
+    expect(subtreeMaxDepthBelow('root', lists)).toBe(1)
+  })
+
+  it('returns the deepest path among siblings', () => {
+    const lists = [
+      makeList('root', null),
+      makeList('a', 'root'),
+      makeList('b', 'root'),
+      makeList('a1', 'a'),
+      makeList('a1a', 'a1'),
+    ]
+    expect(subtreeMaxDepthBelow('root', lists)).toBe(3)
   })
 })

@@ -1,7 +1,7 @@
 import type { TrackedItem, ExtensionSettings, ExportedData, ExportedItem, ImportResult, CustomTagRegistry, CustomList, BackfillProgress, LastSaveAttempt } from '@/shared/types'
 import { DEFAULT_SETTINGS } from '@/shared/types'
 import { createLogger } from '@/shared/logger'
-import { depthOf } from '@/shared/listTree'
+import { depthOf, descendantIds, subtreeMaxDepthBelow } from '@/shared/listTree'
 import { MAX_LIST_NESTING_DEPTH } from '@/shared/constants'
 
 const log = createLogger('storage')
@@ -467,16 +467,53 @@ export class StorageService {
 
   /**
    * Apply a partial update to an existing list.
-   * Protects id from being overwritten; auto-sets updatedAt.
+   * Validates parentId moves (existence, manual parent, cycle, depth) and type
+   * transitions (manual→smart with children is rejected).
    */
   async updateList(listId: string, updates: Partial<CustomList>): Promise<void> {
     return serialize(async () => {
       const lists = await readLists()
       const index = lists.findIndex((l) => l.id === listId)
       if (index === -1) return
+      const current = lists[index]
+
+      if ('parentId' in updates && updates.parentId !== current.parentId) {
+        const newParentId = updates.parentId ?? null
+        if (newParentId !== null) {
+          if (newParentId === listId) {
+            throw new Error('Cannot move a list into its own descendants')
+          }
+          const parent = lists.find((l) => l.id === newParentId)
+          if (!parent) {
+            throw new Error('Parent list not found')
+          }
+          if (parent.type !== 'manual') {
+            throw new Error('Smart lists cannot contain sub-lists')
+          }
+          const descendants = descendantIds(listId, lists)
+          if (descendants.includes(newParentId)) {
+            throw new Error('Cannot move a list into its own descendants')
+          }
+          // After move, the deepest descendant of the moved subtree sits at
+          // (parent's depth) + 1 + (current depth-below-self of deepest descendant).
+          const parentDepth = depthOf(newParentId, lists)
+          const ownDepth = subtreeMaxDepthBelow(listId, lists)
+          const newMaxDepth = parentDepth + 1 + ownDepth
+          if (newMaxDepth > MAX_LIST_NESTING_DEPTH - 1) {
+            throw new Error(`Move would exceed maximum nesting depth (${MAX_LIST_NESTING_DEPTH})`)
+          }
+        }
+      }
+
+      if (updates.type === 'smart' && current.type === 'manual') {
+        const hasChildren = lists.some((l) => l.parentId === listId)
+        if (hasChildren) {
+          throw new Error('Convert children to root-level lists first')
+        }
+      }
 
       lists[index] = {
-        ...lists[index],
+        ...current,
         ...updates,
         id: listId, // protect id from being overwritten
         updatedAt: Date.now(),

@@ -81,6 +81,31 @@ export function descendantIds(listId: string, lists: CustomList[]): string[] {
 }
 
 /**
+ * Maximum number of additional levels below the given list (0 if leaf).
+ * "Below" excludes the list itself.
+ */
+export function subtreeMaxDepthBelow(listId: string, lists: CustomList[]): number {
+  const childrenByParent = new Map<string, string[]>()
+  for (const l of lists) {
+    if (l.parentId === null) continue
+    const arr = childrenByParent.get(l.parentId) ?? []
+    arr.push(l.id)
+    childrenByParent.set(l.parentId, arr)
+  }
+  function walk(id: string): number {
+    const kids = childrenByParent.get(id) ?? []
+    if (kids.length === 0) return 0
+    let best = 0
+    for (const k of kids) {
+      const d = 1 + walk(k)
+      if (d > best) best = d
+    }
+    return best
+  }
+  return walk(listId)
+}
+
+/**
  * Ancestor ids from immediate parent up to the root. Cycle-safe.
  */
 export function ancestorIds(listId: string, lists: CustomList[]): string[] {

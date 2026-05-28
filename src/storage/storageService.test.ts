@@ -531,6 +531,91 @@ describe('StorageService', () => {
     })
   })
 
+  describe('updateList parentId validation', () => {
+    it('allows moving a list to a new manual parent', async () => {
+      const a = await service.createList({ name: 'a', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const b = await service.createList({ name: 'b', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const child = await service.createList({ name: 'child', type: 'manual', itemIds: [], filters: null, parentId: a.id })
+
+      await service.updateList(child.id, { parentId: b.id })
+
+      const result = (await service.getLists()).find((l) => l.id === child.id)
+      expect(result?.parentId).toBe(b.id)
+    })
+
+    it('allows moving a list back to root', async () => {
+      const a = await service.createList({ name: 'a', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const child = await service.createList({ name: 'child', type: 'manual', itemIds: [], filters: null, parentId: a.id })
+
+      await service.updateList(child.id, { parentId: null })
+
+      const result = (await service.getLists()).find((l) => l.id === child.id)
+      expect(result?.parentId).toBeNull()
+    })
+
+    it('rejects moving a list into its own descendant (cycle)', async () => {
+      const root = await service.createList({ name: 'root', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const child = await service.createList({ name: 'child', type: 'manual', itemIds: [], filters: null, parentId: root.id })
+
+      await expect(
+        service.updateList(root.id, { parentId: child.id }),
+      ).rejects.toThrow(/Cannot move a list into its own descendants/)
+    })
+
+    it('rejects moving a list into itself', async () => {
+      const a = await service.createList({ name: 'a', type: 'manual', itemIds: [], filters: null, parentId: null })
+
+      await expect(
+        service.updateList(a.id, { parentId: a.id }),
+      ).rejects.toThrow(/Cannot move a list into its own descendants/)
+    })
+
+    it('rejects moves that would push subtree past depth 3', async () => {
+      // Build:   r1 -> a -> b  (b at depth 2)
+      //          r2 -> c -> d  (d at depth 2)
+      // Try moving r1 under d → r1 would be depth 3 and a/b would be 4/5.
+      const r1 = await service.createList({ name: 'r1', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const a = await service.createList({ name: 'a', type: 'manual', itemIds: [], filters: null, parentId: r1.id })
+      await service.createList({ name: 'b', type: 'manual', itemIds: [], filters: null, parentId: a.id })
+      const r2 = await service.createList({ name: 'r2', type: 'manual', itemIds: [], filters: null, parentId: null })
+      const c = await service.createList({ name: 'c', type: 'manual', itemIds: [], filters: null, parentId: r2.id })
+      const d = await service.createList({ name: 'd', type: 'manual', itemIds: [], filters: null, parentId: c.id })
+
+      await expect(
+        service.updateList(r1.id, { parentId: d.id }),
+      ).rejects.toThrow(/Move would exceed maximum nesting depth/)
+    })
+
+    it('rejects moving a list under a smart parent', async () => {
+      const smart = await service.createList({
+        name: 'smart',
+        type: 'smart',
+        itemIds: [],
+        filters: { formats: [], genres: [], tags: [] },
+        parentId: null,
+      })
+      const manual = await service.createList({
+        name: 'manual', type: 'manual', itemIds: [], filters: null, parentId: null,
+      })
+
+      await expect(
+        service.updateList(manual.id, { parentId: smart.id }),
+      ).rejects.toThrow(/Smart lists cannot contain sub-lists/)
+    })
+
+    it('rejects converting a manual list with children to smart', async () => {
+      const parent = await service.createList({ name: 'p', type: 'manual', itemIds: [], filters: null, parentId: null })
+      await service.createList({ name: 'c', type: 'manual', itemIds: [], filters: null, parentId: parent.id })
+
+      await expect(
+        service.updateList(parent.id, {
+          type: 'smart',
+          filters: { formats: [], genres: [], tags: [] },
+        }),
+      ).rejects.toThrow(/Convert children to root-level lists first/)
+    })
+  })
+
   describe('list parentId backwards-compat', () => {
     it('defaults parentId to null when stored list has no parentId field', async () => {
       // Simulate a list written by a previous version (no parentId)
